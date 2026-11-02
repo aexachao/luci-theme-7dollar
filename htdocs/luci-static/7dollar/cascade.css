@@ -503,6 +503,16 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 .assoclist .th,.assoclist .td{padding-left:8px;padding-right:8px}
 .assoclist .td:nth-of-type(5){width:28%}
 .assoclist .td:nth-of-type(2){white-space:nowrap;font-variant-numeric:tabular-nums}
+/* details folding (7dollar/tidy.js): engineering fields stay hidden until the section is opened */
+.td-sec:not(.td-open) .td-x{display:none!important}
+.td-y,.td-sec.td-open .td-y{display:none}.td-sec:not(.td-open) .td-y{display:inline}
+.td-sec:not(.td-open) .ifacebadge[data-ssid]>span{display:none}
+.td-sec:not(.td-open) .ifacebadge[data-ssid]::after{content:attr(data-ssid)}
+.td-sec-h{display:flex;align-items:center;gap:8px}
+.td-detail{margin-left:auto;display:inline-flex;align-items:center;gap:2px;height:28px;padding:0 6px 0 10px;border:0;border-radius:99px;background:none;color:var(--ink-3);font:500 12.5px/1 var(--sans);cursor:pointer;transition:background .2s,color .2s}
+.td-detail:hover{background:var(--surface-2);color:var(--ink)}
+.td-detail .i{width:14px;height:14px;transform:rotate(90deg);transition:transform .2s var(--ease)}
+.td-detail[aria-expanded=true] .i{transform:rotate(-90deg)}
 
 /* native LuCI icons (<img src=".../resources/icons/*.svg">): hide the bitmap, paint a palette-tinted line icon */
 @supports (mask-size:contain) or (-webkit-mask-size:contain){

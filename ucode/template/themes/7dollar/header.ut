@@ -12,7 +12,7 @@
 	const mode = (conf.mode in [ 'light', 'dark', 'auto' ]) ? conf.mode : 'auto';
 	const zh = !!match(dispatcher.lang ?? '', /^zh/);
 	const T = (z, e) => zh ? z : e;
-	const ver = '1.0.6';
+	const ver = '1.0.7';
 	const hostname = striptags(boardinfo.hostname ?? 'OpenWrt');
 	const sprite = `${media}/icons.svg`;
 

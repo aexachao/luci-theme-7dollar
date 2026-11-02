@@ -3,6 +3,7 @@
 'require ui';
 'require poll';
 'require 7dollar.common as td';
+'require 7dollar.tidy as tidy';
 
 /*
  * Navigation for the 7Dollar theme.

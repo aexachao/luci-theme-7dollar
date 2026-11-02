@@ -34,8 +34,9 @@
 - **5 套配色**：陶土、青瓷、雾蓝、暮紫、石墨，各有浅色 / 深色，可跟随系统
 - **插件卡片可选**：默认不显示任何代理信息；装了 OpenClash 可在设置中开启，只读取一次状态，不轮询
 - **自适应**：手机、平板、页面缩放下都会重新排版
-- **轻量**：无外部字体和请求，CSS 17 KB（gzip），安装包 46 KB
+- **轻量**：无外部字体和请求，CSS 17 KB（gzip），安装包 49 KB
 - **兼容原生页面**：LuCI 所有功能保持不变，原生图标统一换成主题风格
+- **信息分层**：Wi‑Fi、接口、状态页默认只显示常用信息，MAC、BSSID、数据包数等点「详情」展开
 
 ## 截图
 
@@ -64,7 +65,7 @@
 
 适用于 23.05 / 24.10。25.x 请用方法二。
 
-1. 下载安装包：[luci-theme-7dollar_1.0.6-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.6-r1_all.ipk)（历史版本见 [Releases](https://github.com/itsmaiGe/luci-theme-7dollar/releases)）
+1. 下载安装包：[luci-theme-7dollar_1.0.7-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.7-r1_all.ipk)（历史版本见 [Releases](https://github.com/itsmaiGe/luci-theme-7dollar/releases)）
 2. 浏览器打开路由器后台（通常是 `192.168.1.1`），输入密码登录
 3. 点 **系统 → 软件包 → 上传软件包…**，选择刚下载的文件，点 **上传**，再点 **安装**
 4. 刷新页面（Windows 按 <kbd>F5</kbd>，Mac 按 <kbd>⌘ R</kbd>）
@@ -191,9 +192,10 @@ install.sh / uninstall.sh        安装 / 卸载脚本
 - 5 palettes (Clay, Celadon, Mist, Dusk, Graphite), each in light and dark
 - Optional plugin cards. OpenClash is off by default and is read once, never polled.
 - Native LuCI pages restyled, icons included
-- Responsive and zoom-friendly; no external fonts or requests; 46 KB package
+- Status pages (Wi‑Fi, interfaces, overview) show the essentials; MACs, BSSIDs, packet counts and the like sit behind *Details*
+- Responsive and zoom-friendly; no external fonts or requests; 49 KB package
 
-**Install**: upload [the ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.6-r1_all.ipk) via *System → Software → Upload Package* (23.05 / 24.10), or run over SSH on any version (picks the ipk or the [apk](https://github.com/itsmaiGe/luci-theme-7dollar/tree/main/dist) automatically):
+**Install**: upload [the ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.7-r1_all.ipk) via *System → Software → Upload Package* (23.05 / 24.10), or run over SSH on any version (picks the ipk or the [apk](https://github.com/itsmaiGe/luci-theme-7dollar/tree/main/dist) automatically):
 
 ```sh
 wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
