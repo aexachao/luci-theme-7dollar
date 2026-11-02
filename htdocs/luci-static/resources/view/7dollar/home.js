@@ -58,7 +58,7 @@ return view.extend({
 		this.hidden = hidden;
 		let n = 1;
 		const card = (key, cls, inner) => hidden.indexOf(key) > -1 ? '' : `<section class="td-card ${cls}" data-card="${key}" style="--i:${n++}">${inner}</section>`;
-		const col = (...cards) => cards.join('') ? `<div class="td-col">${cards.join('')}</div>` : '';
+		const col = c => c.length ? `<div class="td-col">${c.join('')}</div>` : '';
 
 		/* Topology follows how this box is wired: main router (upstream → this → devices) or
 		 * side router / AP, which hangs off the main router next to the other devices. */
@@ -76,6 +76,56 @@ return view.extend({
 		                              : rate('down', T('下载', 'Download')) + rate('up', T('上传', 'Upload'), ' up'))
 			+ `<div class="td-rate boot"><small>${esc(T('本次开机', 'Since boot'))}</small><span id="td-boot">—</span></div>`;
 		const os = board.release ? `${board.release.distribution} ${board.release.version}` : 'OpenWrt';
+
+		const rateCard = card('rate', 'k-rate', `
+					<div class="td-card-h"><h3>${esc(T('实时速率', 'Live traffic'))}</h3><span class="td-muted">${esc(T('过去 2 分钟', 'Last 2 minutes'))}</span></div>
+					<div class="td-rates">${rates}</div>
+					<svg class="td-chart" id="td-chart" viewBox="0 0 600 118" preserveAspectRatio="none" aria-hidden="true"></svg>`);
+
+		/* Cards below the top row, in reading order. Each goes into whichever column is shorter so far
+		 * (rough heights), so the two columns stay balanced whatever is hidden or missing. */
+		const H = { dev: 6, wifi: 4, sys: 3.5, oc: 4, ports: 2, disk: 2, actions: 3 }, cols = [ [], [] ], h = [ 0, 0 ];
+		for (const [ k, html ] of [
+			[ 'dev', card('dev', 'k-dev', `
+					<div class="td-card-h"><h3>${esc(T('在线设备', 'Online devices'))}</h3><a href="${L.url('admin/clients')}">${esc(T('全部', 'All'))}${icon('chev')}</a></div>
+					<div id="td-devs"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`) ],
+			[ 'wifi', this.s.hasWifi ? card('wifi', 'k-wifi', `
+					<div class="td-card-h"><h3>Wi‑Fi</h3><a href="${L.url('admin/network/wireless')}">${esc(T('设置', 'Settings'))}${icon('chev')}</a></div>
+					<div id="td-wifi"></div>`) : '' ],
+			[ 'sys', card('sys', 'k-sys', `
+					<div class="td-card-h"><h3>${esc(T('路由器状态', 'Router status'))}</h3><span class="td-muted">${esc(os)}</span></div>
+					<div class="td-rings">
+						${this.ring('cpu', T('处理器', 'CPU'))}
+						${this.ring('mem', T('内存', 'Memory'))}
+						${this.ring('temp', T('温度', 'Temperature'), 'warm')}
+					</div>
+					<div class="td-tags" id="td-tags"></div>`) ],
+			[ 'oc', showOC ? `<section class="td-card k-proxy" data-card="oc" style="--i:${n++}">
+					<div class="td-card-h"><h3>OpenClash</h3><span class="td-chip mute" id="td-oc-chip"><span class="td-dot"></span>${esc(T('读取中', 'Loading'))}</span></div>
+					<dl class="td-kv">
+						<div><dt>${esc(T('运行模式', 'Run mode'))}</dt><dd id="td-oc-run">—</dd></div>
+						<div><dt>${esc(T('配置文件', 'Config'))}</dt><dd id="td-oc-cfg">—</dd></div>
+					</dl>
+					<div class="td-seg" id="td-oc-seg">
+						<button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button>
+					</div>
+					<a class="btn block" href="${L.url('admin/services/openclash')}">${esc(T('打开 OpenClash', 'Open OpenClash'))}${icon('arrow')}</a>
+				</section>` : '' ],
+			[ 'ports', card('ports', 'k-ports', `
+					<div class="td-card-h"><h3>${esc(T('网口', 'Ports'))}</h3><span class="td-muted" id="td-ports-n"></span></div>
+					<dl class="td-kv" id="td-ports"></dl>`) ],
+			[ 'disk', card('disk', 'k-disk', `
+					<div class="td-card-h"><h3>${esc(T('存储空间', 'Storage'))}</h3></div>
+					<div id="td-disk"></div>`) ],
+			[ 'actions', card('actions', 'k-actions', `
+					<div class="td-card-h"><h3>${esc(T('常用操作', 'Quick actions'))}</h3></div>
+					<div class="td-acts">
+						${this.act('admin/system/flash', 'backup', T('备份配置', 'Back up'))}
+						${this.act('admin/system/package-manager', 'box', T('软件包', 'Software'))}
+						${this.act('admin/network/diagnostics', 'pulse', T('网络诊断', 'Diagnostics'))}
+						${this.act('admin/status/logs', 'doc', T('查看日志', 'Logs'))}
+					</div>`) ]
+		]) if (html) { const c = h[1] < h[0] ? 1 : 0; cols[c].push(html); h[c] += H[k]; }
 
 		const root = td.html(`<div class="td-home">
 			<div class="td-head">
@@ -99,59 +149,8 @@ return view.extend({
 					</dl>
 				</section>
 
-				${card('rate', 'k-rate', `
-					<div class="td-card-h"><h3>${esc(T('实时速率', 'Live traffic'))}</h3><span class="td-muted">${esc(T('过去 2 分钟', 'Last 2 minutes'))}</span></div>
-					<div class="td-rates">${rates}</div>
-					<svg class="td-chart" id="td-chart" viewBox="0 0 600 118" preserveAspectRatio="none" aria-hidden="true"></svg>`)}
-			</div><div class="td-cols">${col(
-
-				card('dev', 'k-dev', `
-					<div class="td-card-h"><h3>${esc(T('在线设备', 'Online devices'))}</h3><a href="${L.url('admin/clients')}">${esc(T('全部', 'All'))}${icon('chev')}</a></div>
-					<div id="td-devs"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`),
-
-				card('sys', 'k-sys', `
-					<div class="td-card-h"><h3>${esc(T('路由器状态', 'Router status'))}</h3><span class="td-muted">${esc(os)}</span></div>
-					<div class="td-rings">
-						${this.ring('cpu', T('处理器', 'CPU'))}
-						${this.ring('mem', T('内存', 'Memory'))}
-						${this.ring('temp', T('温度', 'Temperature'), 'warm')}
-					</div>
-					<div class="td-tags" id="td-tags"></div>`),
-
-				card('ports', 'k-ports', `
-					<div class="td-card-h"><h3>${esc(T('网口', 'Ports'))}</h3><span class="td-muted" id="td-ports-n"></span></div>
-					<dl class="td-kv" id="td-ports"></dl>`)
-			)}${col(
-
-				this.s.hasWifi ? card('wifi', 'k-wifi', `
-					<div class="td-card-h"><h3>Wi‑Fi</h3><a href="${L.url('admin/network/wireless')}">${esc(T('设置', 'Settings'))}${icon('chev')}</a></div>
-					<div id="td-wifi"></div>`) : '',
-
-				showOC ? `<section class="td-card k-proxy" data-card="oc" style="--i:${n++}">
-					<div class="td-card-h"><h3>OpenClash</h3><span class="td-chip mute" id="td-oc-chip"><span class="td-dot"></span>${esc(T('读取中', 'Loading'))}</span></div>
-					<dl class="td-kv">
-						<div><dt>${esc(T('运行模式', 'Run mode'))}</dt><dd id="td-oc-run">—</dd></div>
-						<div><dt>${esc(T('配置文件', 'Config'))}</dt><dd id="td-oc-cfg">—</dd></div>
-					</dl>
-					<div class="td-seg" id="td-oc-seg">
-						<button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button>
-					</div>
-					<a class="btn block" href="${L.url('admin/services/openclash')}">${esc(T('打开 OpenClash', 'Open OpenClash'))}${icon('arrow')}</a>
-				</section>` : '',
-
-				card('disk', 'k-disk', `
-					<div class="td-card-h"><h3>${esc(T('存储空间', 'Storage'))}</h3></div>
-					<div id="td-disk"></div>`),
-
-				card('actions', 'k-actions', `
-					<div class="td-card-h"><h3>${esc(T('常用操作', 'Quick actions'))}</h3></div>
-					<div class="td-acts">
-						${this.act('admin/system/flash', 'backup', T('备份配置', 'Back up'))}
-						${this.act('admin/system/package-manager', 'box', T('软件包', 'Software'))}
-						${this.act('admin/network/diagnostics', 'pulse', T('网络诊断', 'Diagnostics'))}
-						${this.act('admin/status/logs', 'doc', T('查看日志', 'Logs'))}
-					</div>`)
-			)}</div></div>
+				${rateCard}
+			</div><div class="td-cols">${col(cols[0])}${col(cols[1])}</div></div>
 		</div>`);
 
 		this.root = root;
@@ -312,15 +311,15 @@ return view.extend({
 			const box = this.$('td-devs');
 			if (!box) return;
 
-			const top = online.slice(0, 5);
+			const top = online.slice(0, 6);
 			box.innerHTML = top.length ? top.map(c => {
 				const [ sig ] = td.signal(c.signal);
-				const sub = c.conn == 'wifi' ? `Wi‑Fi ${td.bandName(c.band)} · ${sig}` : T('有线连接', 'Wired') + (c.ip ? ' · ' + c.ip : '');
+				const sub = c.conn == 'wifi' ? `Wi‑Fi ${td.bandName(c.band)} · ${sig}` : T('有线连接', 'Wired') + (c.ip && c.ip != c.display ? ' · ' + c.ip : '');
 				const rt = c.conn == 'wifi' && c.link
 					? `${Math.round(c.link)} Mbps<div class="td-bar"><i style="width:${td.quality(c.signal)}%"></i></div>`
 					: `${esc(T('有线', 'Wired'))}<div class="td-bar"><i style="width:100%"></i></div>`;
 				return `<div class="td-dev"><div class="td-av">${icon(c.kind)}</div><div class="nm"><b>${esc(c.display)}</b><small>${esc(sub)}</small></div><div class="rt" title="${esc(T('连接速率 · 信号强度', 'Link rate · signal'))}">${rt}</div></div>`;
-			}).join('') + (online.length > 5 ? `<a class="td-more" href="${L.url('admin/clients')}">${esc(T(`还有 ${online.length - 5} 台设备`, `${online.length - 5} more`))}</a>` : '')
+			}).join('') + (online.length > 6 ? `<a class="td-more" href="${L.url('admin/clients')}">${esc(T(`还有 ${online.length - 6} 台设备`, `${online.length - 6} more`))}</a>` : '')
 			: `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`;
 		});
 	},
