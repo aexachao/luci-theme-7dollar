@@ -151,10 +151,36 @@ function arm(el) {
 		btn.setAttribute('aria-expanded', open);
 		btn.innerHTML = `${T(open ? '收起' : '详情', open ? 'Less' : 'Details')}${icon('chev')}`;
 	};
-	btn.addEventListener('click', () => paint(sec.classList.toggle('td-open')));
+	btn.addEventListener('click', () => paint(flip(sec)));
 	paint(sec.classList.contains('td-open'));
 	h.classList.add('td-sec-h');
 	h.append(btn);
+}
+
+/* Open or close a section. The box eases to its new height while the details fade in, or fade out
+ * before they go; tables (display:table cannot clip) just fade. Returns the new state. */
+function flip(sec) {
+	sec._end?.();
+	const open = !sec.classList.contains('td-open'), ms = td.motion('base');
+	if (!ms) return sec.classList.toggle('td-open', open);
+
+	const box = getComputedStyle(sec).display != 'table', from = sec.offsetHeight;
+	sec.classList.toggle('td-open', open);
+	const to = sec.offsetHeight;
+	sec.classList.add('td-open', open ? 'td-opening' : 'td-closing');
+
+	const anim = box && sec.animate({ height: [ `${from}px`, `${to}px` ] }, { duration: ms, fill: 'forwards', easing: getComputedStyle(sec).getPropertyValue('--ease').trim() });
+	if (anim) sec.style.overflow = 'hidden';
+	const end = sec._end = () => {
+		sec._end = null;
+		clearTimeout(timer);
+		anim?.cancel();
+		sec.style.overflow = '';
+		sec.classList.remove('td-opening', 'td-closing');
+		sec.classList.toggle('td-open', open);
+	};
+	const timer = setTimeout(end, ms);
+	return open;
 }
 
 return baseclass.extend({

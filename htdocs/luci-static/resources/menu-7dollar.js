@@ -158,7 +158,7 @@ return baseclass.extend({
 	},
 
 	openSearch() {
-		if (document.querySelector('.td-pop')) return;
+		if (document.querySelector('.td-pop:not(.td-out)')) return;
 
 		const pop = td.html(`<div class="td-pop" role="dialog" aria-modal="true">
 			<div class="td-pop-box">
@@ -183,7 +183,7 @@ return baseclass.extend({
 			if (on) on.scrollIntoView({ block: 'nearest' });
 		};
 
-		const close = () => pop.remove();
+		const close = () => td.leave(pop);
 
 		input.addEventListener('input', () => { sel = 0; draw() });
 		input.addEventListener('keydown', ev => {
@@ -205,7 +205,7 @@ return baseclass.extend({
 	/* ---------- phone: "More" sheet ---------- */
 
 	openSheet() {
-		if (document.querySelector('.td-pop')) return;
+		if (document.querySelector('.td-pop:not(.td-out)')) return;
 
 		const rest = (this.groups || []).filter(g => g.mob === false || g.id == 'system');
 		const body = rest.map(g => `<div class="grp">${esc(g.label)}</div>` +
@@ -222,7 +222,7 @@ return baseclass.extend({
 		document.body.appendChild(pop);
 		pop.addEventListener('click', ev => {
 			const b = ev.target.closest('[data-act]');
-			if (ev.target === pop) pop.remove();
+			if (ev.target === pop) td.leave(pop);
 			else if (b && b.dataset.act == 'search') { pop.remove(); this.openSearch() }
 			else if (b && b.dataset.act == 'mode') this.toggleMode();
 		});

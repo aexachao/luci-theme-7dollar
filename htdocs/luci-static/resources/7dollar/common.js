@@ -232,28 +232,43 @@ function saveSettings(values) {
 	});
 }
 
+/* ---------------- motion ---------------- */
+
+/* Durations live in cascade.css (--fast / --base / --slow); scripts read them so CSS and JS move alike. */
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+function motion(name) {
+	return calm.matches ? 0 : parseFloat(getComputedStyle(document.documentElement).getPropertyValue(`--${name}`)) * 1000 || 0;
+}
+
+/* Exits mirror entrances: fade (and sink) out, then go. */
+function leave(el) {
+	if (el.classList.contains('td-out')) return;
+	el.classList.add('td-out');
+	setTimeout(() => el.remove(), motion('fast'));
+}
+
 function applyLook(s) {
 	const r = document.documentElement;
 	const dark = s.mode == 'auto' ? matchMedia('(prefers-color-scheme: dark)').matches : s.mode == 'dark';
-
-	r.setAttribute('data-palette', s.palette);
-	r.setAttribute('data-mode', s.mode);
-	r.setAttribute('data-theme', dark ? 'dark' : 'light');
-	r.setAttribute('data-darkmode', dark ? 'true' : 'false');
-	document.dispatchEvent(new CustomEvent('td-look', { detail: s }));
+	const paint = () => {
+		r.setAttribute('data-palette', s.palette);
+		r.setAttribute('data-mode', s.mode);
+		r.setAttribute('data-theme', dark ? 'dark' : 'light');
+		r.setAttribute('data-darkmode', dark ? 'true' : 'false');
+		document.dispatchEvent(new CustomEvent('td-look', { detail: s }));
+	};
+	/* one cross-fade of the whole page instead of every colour easing on its own */
+	if (document.startViewTransition && motion('base')) document.startViewTransition(paint);
+	else paint();
 }
 
 let toastTimer;
 function toast(msg) {
-	let t = document.querySelector('.td-toast');
-	if (!t) {
-		t = E('div', { 'class': 'td-toast', 'role': 'status' });
-		document.body.appendChild(t);
-	}
+	let t = document.querySelector('.td-toast:not(.td-out)');
+	if (!t) document.body.appendChild(t = E('div', { 'class': 'td-toast', 'role': 'status' }));
 	t.textContent = msg;
-	t.style.display = '';
 	clearTimeout(toastTimer);
-	toastTimer = setTimeout(() => { t.style.display = 'none' }, 1800);
+	toastTimer = setTimeout(() => leave(t), 1800);
 }
 
 /* ---------------- formatting ---------------- */
@@ -535,7 +550,7 @@ return baseclass.extend({
 	PALETTES: PALETTES, GROUPS: GROUPS, DEFAULTS: DEFAULTS,
 	esc: esc, icon: icon, html: html,
 	flatten: flatten, realNode: realNode, menuHas: menuHas, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
-	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast,
+	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast, motion: motion, leave: leave,
 	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, kind: kind, pretty: pretty,
 	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
 	board: () => L.resolveDefault(callBoard(), {}),
