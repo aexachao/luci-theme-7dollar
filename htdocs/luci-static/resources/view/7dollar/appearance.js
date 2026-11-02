@@ -10,15 +10,15 @@ const T = td.T, icon = td.icon, esc = td.esc;
 const CARDS = [
 	[ 'rate', T('实时速率', 'Live traffic'), T('上传和下载速度曲线', 'Upload and download chart') ],
 	[ 'dev', T('在线设备', 'Online devices'), T('正在使用网络的设备', 'Devices currently online') ],
-	[ 'wifi', 'Wi‑Fi', T('名称、频段和连接数', 'Name, bands and clients') ],
+	[ 'wifi', 'Wi‑Fi', T('名称、频段和连接数', 'Name, bands and clients'), 'network/wireless' ],
 	[ 'sys', T('路由器状态', 'Router status'), T('处理器、内存、温度', 'CPU, memory, temperature') ],
 	[ 'actions', T('常用操作', 'Quick actions'), T('备份、软件包、诊断、日志', 'Backup, software, diagnostics, logs') ]
 ];
 
 const PLUGINS = [
-	[ 'openclash', 'OpenClash', 'admin/services/openclash', T('运行状态、运行模式和代理模式切换', 'Status, run mode and proxy mode switch'), true ],
-	[ 'passwall', 'PassWall', 'admin/services/passwall', T('暂未适配，敬请期待', 'Not supported yet'), false ],
-	[ 'homeproxy', 'HomeProxy', 'admin/services/homeproxy', T('暂未适配，敬请期待', 'Not supported yet'), false ]
+	[ 'openclash', 'OpenClash', 'services/openclash', T('运行状态、运行模式和代理模式切换', 'Status, run mode and proxy mode switch'), true ],
+	[ 'passwall', 'PassWall', 'services/passwall', T('暂未适配，敬请期待', 'Not supported yet'), false ],
+	[ 'homeproxy', 'HomeProxy', 'services/homeproxy', T('暂未适配，敬请期待', 'Not supported yet'), false ]
 ];
 
 return view.extend({
@@ -28,18 +28,16 @@ return view.extend({
 
 	render([ conf, tree, luci ]) {
 		this.conf = conf;
-		const has = path => {
-			let n = tree;
-			for (const k of path.split('/')) { n = n && n.children && n.children[k]; }
-			return !!n;
-		};
+		const has = path => td.menuHas(tree, path);
 		const usingUs = /\/7dollar$/.test((luci || {}).mediaurlbase || L.env.media || '');
 
 		const pal = td.PALETTES.map(([ id, name ]) => `<button type="button" class="td-pal" data-palette="${id}" data-pick="${id}">
 			<div class="pv"><div class="sb"><i></i><i></i><i></i><i></i></div><div class="cd"><i></i><i></i><i style="width:70%"></i><u></u></div></div>
 			<div class="nm"><span>${esc(name)}</span><span class="ck">${icon('tick')}</span></div></button>`).join('');
 
-		const cards = CARDS.map(([ k, n, d ]) => `<div class="td-row"><div class="lb"><b>${esc(n)}</b><small>${esc(d)}</small></div><button type="button" class="td-switch" data-card="${k}" aria-label="${esc(n)}"></button></div>`).join('');
+		const cards = CARDS.map(([ k, n, d, need ]) => need && !has(need)
+			? `<div class="td-row off"><div class="lb"><b>${esc(n)} <span class="td-chip mute">${esc(T('未检测到', 'Not found'))}</span></b><small>${esc(T('这台设备没有无线网卡', 'This device has no wireless hardware'))}</small></div><button type="button" class="td-switch" disabled aria-label="${esc(n)}"></button></div>`
+			: `<div class="td-row"><div class="lb"><b>${esc(n)}</b><small>${esc(d)}</small></div><button type="button" class="td-switch" data-card="${k}" aria-label="${esc(n)}"></button></div>`).join('');
 
 		const plugins = PLUGINS.map(([ k, n, path, d, ok ]) => {
 			const found = has(path);

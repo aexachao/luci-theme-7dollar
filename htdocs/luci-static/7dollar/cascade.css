@@ -590,19 +590,21 @@ body.modal-overlay-active #modal_overlay{left:0;right:0;opacity:1;visibility:vis
 .td-eyebrow{color:var(--ink-3);font-size:13px;margin:0 0 6px}
 .td-head h1{margin:0}
 .td-sub{color:var(--ink-2);margin:8px 0 0;font-size:15px}
-.td-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;grid-auto-flow:row dense}
-@container main (min-width:640px){
-  .td-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .td-full-md{grid-column:1/-1}
-  .td-grid.has-oc .k-actions{grid-column:1/-1}
+/* Cards wrap and grow, so hiding any card (or having no Wi-Fi) never leaves a hole:
+   a card left alone on its row simply takes the full width. --n is its share of 12 columns. */
+.td-grid{display:flex;flex-wrap:wrap;gap:18px}
+.td-grid>.td-card{flex:1 1 100%}
+@container main (min-width:640px) and (max-width:979.98px){
+  .td-grid>.td-card{flex-basis:calc(50% - 9px)}
+  .td-grid>.td-full-md{flex-basis:100%}
+  .td-grid>.k-dev,.td-grid>.k-proxy,.td-grid>.k-sys,.td-grid>.k-actions{order:1}
 }
 @container main (min-width:980px){
-  .td-grid{grid-template-columns:repeat(12,minmax(0,1fr))}
-  .k-conn,.k-dev,.k-sys{grid-column:span 7}
-  .k-rate,.k-wifi,.k-actions,.td-grid.has-oc .k-actions{grid-column:span 5}
-  .td-grid.has-oc .k-dev{grid-column:span 5}
-  .td-grid.has-oc .k-wifi{grid-column:span 3}
-  .k-proxy{grid-column:span 4}
+  .td-grid>.td-card{--n:5;flex-basis:calc((100% + 18px) * var(--n) / 12 - 18px)}
+  .td-grid>.k-conn,.td-grid>.k-dev,.td-grid>.k-sys{--n:7}
+  .td-grid.has-oc>.k-dev{--n:5}
+  .td-grid.has-oc>.k-wifi{--n:3}
+  .td-grid>.k-proxy{--n:4}
 }
 .td-card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:22px 24px;position:relative;overflow:hidden;min-width:0;container-type:inline-size;transition:background .3s,border-color .3s;animation:td-rise .45s var(--ease) both}
 .td-grid>.td-card:nth-child(2){animation-delay:.04s}.td-grid>.td-card:nth-child(3){animation-delay:.08s}.td-grid>.td-card:nth-child(4){animation-delay:.12s}.td-grid>.td-card:nth-child(5){animation-delay:.16s}.td-grid>.td-card:nth-child(n+6){animation-delay:.2s}

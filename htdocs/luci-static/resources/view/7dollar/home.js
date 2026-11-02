@@ -27,8 +27,7 @@ return view.extend({
 			td.board(),
 			td.sysinfo(),
 			td.wan(),
-			td.wifiInfo(),
-			ui.menu.load(),
+			ui.menu.load().then(menu => Promise.all([ menu, td.menuHas(menu, 'network/wireless') ? td.wifiInfo() : null ])),
 			td.uciType('firewall', 'defaults'),
 			td.readFile('/sys/module/mt7915e/parameters/wed_enable'),
 			td.readFile('/proc/sys/net/ipv4/tcp_congestion_control'),
@@ -37,15 +36,15 @@ return view.extend({
 		]);
 	},
 
-	render([ conf, board, info, wan, wifi, menu, fw, wed, cc, stat, dev ]) {
+	render([ conf, board, info, wan, [ menu, wifi ], fw, wed, cc, stat, dev ]) {
 		const hidden = String(conf.hidden_cards || '').split(/[\s,]+/).filter(Boolean);
-		const ocNode = ((((menu.children || {}).admin || {}).children || {}).services || { children: {} }).children.openclash;
-		const showOC = conf.plugin_openclash == '1' && !!ocNode;
+		const showOC = conf.plugin_openclash == '1' && td.menuHas(menu, 'services/openclash');
+		const mode = wan && wan.up ? wan.mode : 'wan';
 
 		this.s = {
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
-			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi, info: info, board: board,
-			clients: [], ping: null, oc: showOC
+			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi || { radios: {}, aps: [] }, info: info, board: board,
+			clients: [], ping: null, oc: showOC, hasWifi: !!wifi, mode: mode
 		};
 
 		const fwd = Object.values(fw || {})[0] || {};
@@ -57,6 +56,16 @@ return view.extend({
 		this.s.tags = tags;
 
 		const card = (key, cls, inner) => hidden.indexOf(key) > -1 ? '' : `<section class="td-card ${cls}" data-card="${key}">${inner}</section>`;
+
+		/* Topology follows how this box is wired: main router (upstream → this → devices) or
+		 * side router / AP, which hangs off the main router next to the other devices. */
+		const UP = { wan: [ 'modem', T('上级网络', 'Upstream') ], sta: [ 'wifi', T('上级 Wi‑Fi', 'Upstream Wi‑Fi') ], side: [ 'router', T('主路由', 'Main router') ] }[mode];
+		const link = (attr, tid) => `<div class="td-link"${attr}><span class="t" id="${tid}">&nbsp;</span><div class="ln"><i></i><i></i></div></div>`;
+		const nUp = `<div class="td-node" id="td-up-node"><div class="ic">${icon(UP[0])}</div><b>${esc(UP[1])}</b><small id="td-proto">—</small></div>`;
+		const nMe = `<div class="td-node me"><div class="ic">${icon('router')}</div><b>${esc(board.hostname || 'OpenWrt')}</b><small>${esc(mode == 'side' ? T('旁路由', 'Side router') : T('这台路由器', 'This router'))}</small></div>`;
+		const nDev = `<div class="td-node"><div class="ic">${icon('devices')}</div><b id="td-ndev">—</b><small id="td-ndev-s">&nbsp;</small></div>`;
+		const lUp = link(' id="td-link-up"', 'td-lat'), lLan = link('', 'td-lan-t');
+		const topo = mode == 'side' ? nMe + lUp + nUp + lLan + nDev : nUp + lUp + nMe + lLan + nDev;
 		const os = board.release ? `${board.release.distribution} ${board.release.version}` : 'OpenWrt';
 
 		const root = td.html(`<div class="td-home">
@@ -71,16 +80,10 @@ return view.extend({
 
 			<div class="td-grid${showOC ? ' has-oc' : ''}">
 				<section class="td-card k-conn td-full-md" data-card="conn">
-					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip"><span class="td-dot live"></span>${esc(T('畅通', 'Online'))}</span></div>
-					<div class="td-topo">
-						<div class="td-node" id="td-up-node"><div class="ic">${icon('modem')}</div><b>${esc(T('上级网络', 'Upstream'))}</b><small id="td-proto">—</small></div>
-						<div class="td-link" id="td-link-up"><span class="t" id="td-lat">&nbsp;</span><div class="ln"><i></i><i></i></div></div>
-						<div class="td-node me"><div class="ic">${icon('router')}</div><b>${esc(board.hostname || 'OpenWrt')}</b><small>${esc(T('这台路由器', 'This router'))}</small></div>
-						<div class="td-link"><span class="t" id="td-lan-t">&nbsp;</span><div class="ln"><i></i><i></i></div></div>
-						<div class="td-node"><div class="ic">${icon('devices')}</div><b id="td-ndev">—</b><small id="td-ndev-s">&nbsp;</small></div>
-					</div>
+					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip"></span></div>
+					<div class="td-topo">${topo}</div>
 					<dl class="td-facts">
-						<div><dt>${esc(T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd></div>
+						<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd></div>
 						<div><dt>${esc(T('网关延迟', 'Gateway latency'))}</dt><dd id="td-ping">—</dd></div>
 						<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
 						<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
@@ -99,9 +102,9 @@ return view.extend({
 					<div class="td-card-h"><h3>${esc(T('在线设备', 'Online devices'))}</h3><a href="${L.url('admin/clients')}">${esc(T('全部', 'All'))}${icon('chev')}</a></div>
 					<div id="td-devs"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`)}
 
-				${card('wifi', 'k-wifi', `
+				${this.s.hasWifi ? card('wifi', 'k-wifi', `
 					<div class="td-card-h"><h3>Wi‑Fi</h3><a href="${L.url('admin/network/wireless')}">${esc(T('设置', 'Settings'))}${icon('chev')}</a></div>
-					<div id="td-wifi"></div>`)}
+					<div id="td-wifi"></div>`) : ''}
 
 				${showOC ? `<section class="td-card k-proxy" data-card="oc">
 					<div class="td-card-h"><h3>OpenClash</h3><span class="td-chip mute" id="td-oc-chip"><span class="td-dot"></span>${esc(T('读取中', 'Loading'))}</span></div>
@@ -140,7 +143,7 @@ return view.extend({
 
 		this.greet();
 		this.paintStatic();
-		this.paintWifi(wifi);
+		this.paintWifi(this.s.wifi);
 		this.sample(dev, info);
 		this.refreshClients();
 		this.pingGateway();
@@ -180,21 +183,28 @@ return view.extend({
 
 	paintStatic() {
 		const w = this.s.wan;
-		const PROTO = { dhcp: T('自动获取', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE'), static: T('静态地址', 'Static'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular'), ncm: T('移动网络', 'Cellular'), modemmanager: T('移动网络', 'Cellular'), wwan: T('无线中继', 'Wi‑Fi uplink') };
+		const PROTO = { dhcp: T('自动获取', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE'), static: T('静态地址', 'Static'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular'), ncm: T('移动网络', 'Cellular'), modemmanager: T('移动网络', 'Cellular') };
+		const bands = [...new Set((this.s.wifi.aps || []).filter(a => a.up && a.stations.length).map(a => td.bandName(a.band)))];
 
-		if (!w || !w.up) {
-			this.$('td-up-node').classList.add('bad');
-			this.$('td-link-up').classList.add('down');
-			const chip = this.$('td-conn-chip');
-			chip.className = 'td-chip bad';
-			chip.innerHTML = `<span class="td-dot"></span>${esc(T('未连接', 'Offline'))}`;
+		this.set('td-lan-t', this.s.mode == 'side' ? T('局域网', 'LAN') : bands.length ? 'Wi‑Fi ' + bands.join(' / ') : T('有线', 'Wired'));
+
+		const ok = !!(w && w.up), chip = this.$('td-conn-chip');
+		this.$('td-up-node').classList.toggle('bad', !ok);
+		this.$('td-link-up').classList.toggle('down', !ok);
+		if (chip.dataset.ok != String(ok)) {
+			chip.dataset.ok = ok;
+			chip.className = ok ? 'td-chip' : 'td-chip bad';
+			chip.innerHTML = ok ? `<span class="td-dot live"></span>${esc(T('畅通', 'Online'))}` : `<span class="td-dot"></span>${esc(T('未连接', 'Offline'))}`;
+		}
+
+		if (!ok) {
 			this.set('td-proto', T('没有连接', 'Not connected'));
 			return;
 		}
 
-		this.set('td-proto', PROTO[w.proto] || w.proto || '—');
+		this.set('td-proto', this.s.mode == 'side' ? w.gw || '—' : this.s.mode == 'sta' ? T('无线中继', 'Wi‑Fi uplink') : PROTO[w.proto] || w.proto || '—');
 		this.set('td-wanip', w.ip || w.ip6 || '—');
-		this.set('td-dns', td.dnsName(w.dns, w.gw));
+		this.set('td-dns', td.dnsName(w.dns, w.gw, this.s.mode == 'side' ? T('主路由', 'Main router') : null));
 		this.set('td-wanup', w.uptime ? td.duration(w.uptime) : '—');
 
 		this.paintTags();
@@ -233,9 +243,6 @@ return view.extend({
 		box.innerHTML = main
 			? `<div class="td-ssid">${esc(main.ssid || '—')}</div><p class="td-muted" style="font-size:13px;margin-bottom:16px">${esc(n + ' ' + T('台设备已连接', n == 1 ? 'device connected' : 'devices connected'))}</p>${rows}`
 			: `<div class="td-ssid td-muted">${esc(T('未开启', 'Off'))}</div><p class="td-muted" style="font-size:13px;margin-bottom:16px">${esc(T('这台路由器还没有开启无线网络', 'No wireless network is enabled'))}</p>${rows}`;
-
-		const bands = [...new Set((wifi.aps || []).filter(a => a.up && a.stations.length).map(a => td.bandName(a.band)))];
-		this.set('td-lan-t', bands.length ? 'Wi‑Fi ' + bands.join(' / ') : T('有线', 'Wired'));
 	},
 
 	refreshClients() {
@@ -365,13 +372,13 @@ return view.extend({
 	},
 
 	slow() {
-		return Promise.all([ td.sysinfo(), td.wan(), td.wifiInfo() ]).then(([ info, wan, wifi ]) => {
+		return Promise.all([ td.sysinfo(), td.wan(), this.s.hasWifi ? td.wifiInfo() : this.s.wifi ]).then(([ info, wan, wifi ]) => {
 			this.s.info = info;
 			const was = this.s.wan && this.s.wan.up;
 			this.s.wan = wan;
 			if (!!(wan && wan.up) != !!was) { this.greet(); }
-			this.paintStatic();
 			this.paintWifi(wifi);
+			this.paintStatic();
 			this.pingGateway();
 			return this.refreshClients();
 		});

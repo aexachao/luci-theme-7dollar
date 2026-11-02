@@ -129,6 +129,14 @@ function realNode(parent, child) {
 	return (parent.children && parent.children[child.name]) || child;
 }
 
+/* True if the menu has this page. LuCI only lists pages whose dependencies are met, so this
+ * doubles as a free feature check (e.g. Wireless needs a wifi-device, OpenClash needs the app). */
+function menuHas(tree, path) {
+	let n = tree;
+	for (const k of ('admin/' + path).split('/')) n = n && n.children && n.children[k];
+	return !!n;
+}
+
 function flatten(tree) {
 	/* Returns [{ path, node, title, group }] for every navigable page. */
 	const admin = tree && tree.children && tree.children.admin;
@@ -460,10 +468,11 @@ function wan() {
 	return Promise.all([ L.resolveDefault(callIfDump(), []), readFile('/proc/net/route') ]).then(([ ifs, rt ]) => {
 		const def = defaultRoute(rt);
 		const dev = i => i.l3_device || i.device;
+		const lan = (ifs || []).find(i => i.interface == 'lan');
 
 		if (!def) {
 			const w = (ifs || []).find(i => i.interface == 'wan');
-			return w ? { up: false, proto: w.proto, device: dev(w) } : null;
+			return w ? { up: false, mode: 'wan', proto: w.proto, device: dev(w) } : null;
 		}
 
 		const i = (ifs || []).filter(i => i.up && dev(i) == def.dev)
@@ -471,6 +480,8 @@ function wan() {
 
 		return {
 			up: true,
+			/* side: uplink shares the LAN (bypass router / AP); sta: Wi-Fi uplink (repeater) */
+			mode: lan && dev(lan) == def.dev ? 'side' : /-sta\d+$/.test(def.dev) ? 'sta' : 'wan',
 			proto: i.proto,
 			device: def.dev,
 			ip: ((i['ipv4-address'] || [])[0] || {}).address,
@@ -490,10 +501,10 @@ const DNS_NAMES = {
 	'8.8.8.8': 'Google', '8.8.4.4': 'Google', '9.9.9.9': 'Quad9'
 };
 
-function dnsName(list, gw) {
+function dnsName(list, gw, gwName) {
 	const names = [];
 	(list || []).forEach(ip => {
-		const n = DNS_NAMES[ip] || (ip == gw ? T('上级路由', 'Upstream') : ip);
+		const n = DNS_NAMES[ip] || (ip == gw ? gwName || T('上级路由', 'Upstream') : ip);
 		if (names.indexOf(n) < 0) names.push(n);
 	});
 	return names.slice(0, 2).join(' · ') || '—';
@@ -522,7 +533,7 @@ return baseclass.extend({
 	active: /\/7dollar$/.test(L.env.media || ''),
 	PALETTES: PALETTES, GROUPS: GROUPS, DEFAULTS: DEFAULTS,
 	esc: esc, icon: icon, html: html,
-	flatten: flatten, realNode: realNode, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
+	flatten: flatten, realNode: realNode, menuHas: menuHas, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
 	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast,
 	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, kind: kind, pretty: pretty,
 	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
