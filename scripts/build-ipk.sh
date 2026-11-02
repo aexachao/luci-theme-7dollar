@@ -16,14 +16,7 @@ own() { if $TAR --version | grep -q GNU; then echo "--format=gnu --owner=0 --gro
 
 # ---- data ----
 D=$TMP/data
-mkdir -p "$D/www" "$D/usr/share/ucode/luci"
-cp -R htdocs/. "$D/www/"
-cp -R ucode/. "$D/usr/share/ucode/luci/"
-cp -R root/. "$D/"
-find "$D" -name .DS_Store -delete
-find "$D" -type d -exec chmod 755 {} +
-find "$D" -type f -exec chmod 644 {} +
-chmod 755 "$D"/etc/uci-defaults/*
+sh scripts/stage.sh "$D"
 SIZE=$(du -sk "$D" | cut -f1)
 
 # ---- control ----

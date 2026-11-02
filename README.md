@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <img alt="OpenWrt" src="https://img.shields.io/badge/OpenWrt-23.05%20%7C%2024.10-D97757?style=flat-square">
-  <img alt="Size" src="https://img.shields.io/badge/size-44%20KB-8A7F72?style=flat-square">
+  <img alt="OpenWrt" src="https://img.shields.io/badge/OpenWrt-23.05%20%7C%2024.10%20%7C%2025.12-D97757?style=flat-square">
+  <img alt="Size" src="https://img.shields.io/badge/size-46%20KB-8A7F72?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-5B6F9A?style=flat-square">
 </p>
 
@@ -34,17 +34,17 @@
 - **5 套配色**：陶土、青瓷、雾蓝、暮紫、石墨，各有浅色 / 深色，可跟随系统
 - **插件卡片可选**：默认不显示任何代理信息；装了 OpenClash 可在设置中开启，只读取一次状态，不轮询
 - **自适应**：手机、平板、页面缩放下都会重新排版
-- **轻量**：无外部字体和请求，CSS 17 KB（gzip），安装包 45 KB
+- **轻量**：无外部字体和请求，CSS 17 KB（gzip），安装包 46 KB
 - **兼容原生页面**：LuCI 所有功能保持不变，原生图标统一换成主题风格
 
 ## 截图
 
-<p align="center"><img src="docs/palettes.png" alt="五种配色" width="100%"></p>
+<p align="center"><img src="docs/palettes.webp" alt="五种配色" width="100%"></p>
 
 <table>
   <tr>
     <td width="50%"><img src="docs/home-dark.webp" alt="深色模式"><p align="center"><sub>深色模式 · OpenClash 卡片</sub></p></td>
-    <td width="50%"><img src="docs/mobile.png" alt="手机"><p align="center"><sub>手机</sub></p></td>
+    <td width="50%"><img src="docs/mobile.webp" alt="手机"><p align="center"><sub>手机</sub></p></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/login.webp" alt="登录页"><p align="center"><sub>登录页</sub></p></td>
@@ -62,7 +62,9 @@
 
 ### 方法一：网页上传（推荐，不用命令行）
 
-1. 下载安装包：[luci-theme-7dollar_1.0.4-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.4-r1_all.ipk)
+适用于 23.05 / 24.10。25.x 请用方法二。
+
+1. 下载安装包：[luci-theme-7dollar_1.0.5-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.5-r1_all.ipk)
 2. 浏览器打开路由器后台（通常是 `192.168.1.1`），输入密码登录
 3. 点 **系统 → 软件包 → 上传软件包…**，选择刚下载的文件，点 **上传**，再点 **安装**
 4. 刷新页面（Windows 按 <kbd>F5</kbd>，Mac 按 <kbd>⌘ R</kbd>）
@@ -71,7 +73,7 @@
 
 ### 方法二：一行命令
 
-适用于 23.05 及以上，包括使用 `apk` 的 OpenWrt 25.x。
+适用于所有支持的版本，会自动选择 ipk（23.05 / 24.10）或 apk（25.x）安装包。
 
 1. 打开终端：Mac 搜索「终端」，Windows 搜索「PowerShell」
 2. 登录路由器（把 IP 换成你的路由器地址）：
@@ -116,7 +118,7 @@ make menuconfig   # LuCI → Themes → luci-theme-7dollar
 make package/luci-theme-7dollar/compile V=s
 ```
 
-不使用 SDK 时，可在 macOS / Linux 上运行 `./scripts/build-ipk.sh`，输出到 `dist/`。
+不使用 SDK 时，可在 macOS / Linux 上运行 `./scripts/build-ipk.sh` 生成 ipk；apk 由 GitHub Actions 在 OpenWrt 25.12 镜像中构建并测试安装（见 `.github/workflows/apk.yml`）。两者都输出到 `dist/`。
 </details>
 
 ## 使用
@@ -158,7 +160,7 @@ uci set luci.main.mediaurlbase=/luci-static/bootstrap && uci commit luci
 
 | | |
 | --- | --- |
-| OpenWrt | 23.05、24.10（ucode LuCI）；25.x 请使用方法二；不支持 22.03 及更早版本 |
+| OpenWrt | 23.05、24.10（ipk），25.x（apk）；不支持 22.03 及更早版本 |
 | 浏览器 | 近两年的 Chrome、Edge、Safari、Firefox 及手机浏览器 |
 | 已测试 | Cudy TR3000 · OpenWrt 24.10.5 · MT7981B |
 | 共存 | 可与 Bootstrap、Argon 等主题同时安装 |
@@ -170,7 +172,7 @@ htdocs/luci-static/7dollar/      样式、图标、Logo
 htdocs/luci-static/resources/    导航与页面脚本
 ucode/template/themes/7dollar/   页面框架、登录页
 root/                            默认配置、菜单、权限
-dist/                            ipk 安装包
+dist/                            ipk / apk 安装包
 install.sh / uninstall.sh        安装 / 卸载脚本
 ```
 
@@ -182,22 +184,22 @@ install.sh / uninstall.sh        安装 / 卸载脚本
 
 ## English
 
-**7Dollar** is a clean, card-based LuCI theme for OpenWrt 23.05+ (ucode LuCI). The name comes from its cost: **$7** in AI tokens.
+**7Dollar** is a clean, card-based LuCI theme for OpenWrt 23.05+ (ucode LuCI), including apk-based 25.x. The name comes from its cost: **$7** in AI tokens.
 
 - Home dashboard with connection status, live throughput, devices, Wi‑Fi and system health
 - Menus grouped by purpose, with <kbd>⌘K</kbd> search
 - 5 palettes (Clay, Celadon, Mist, Dusk, Graphite), each in light and dark
 - Optional plugin cards. OpenClash is off by default and is read once, never polled.
 - Native LuCI pages restyled, icons included
-- Responsive and zoom-friendly; no external fonts or requests; 45 KB package
+- Responsive and zoom-friendly; no external fonts or requests; 46 KB package
 
-**Install**: upload [the ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.4-r1_all.ipk) via *System → Software → Upload Package*, or run over SSH:
+**Install**: upload [the ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.5-r1_all.ipk) via *System → Software → Upload Package* (23.05 / 24.10), or run over SSH on any version (picks the ipk or the [apk](https://github.com/itsmaiGe/luci-theme-7dollar/tree/main/dist) automatically):
 
 ```sh
 wget -qO- https://raw.githubusercontent.com/itsmaiGe/luci-theme-7dollar/main/install.sh | sh
 ```
 
-**Uninstall**: `opkg remove luci-theme-7dollar` or the `uninstall.sh` one-liner.
+**Uninstall**: `opkg remove luci-theme-7dollar` / `apk del luci-theme-7dollar`, or the `uninstall.sh` one-liner.
 
 ## License
 

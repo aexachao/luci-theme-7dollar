@@ -4,7 +4,10 @@
 
 if command -v opkg >/dev/null 2>&1 && opkg status luci-theme-7dollar | grep -q '^Status: .* installed'; then
 	opkg remove luci-theme-7dollar
+elif command -v apk >/dev/null 2>&1 && apk info -e luci-theme-7dollar >/dev/null 2>&1; then
+	apk del luci-theme-7dollar
 else
+	# copied in by the 1.0.x installer on OpenWrt 25.x
 	rm -rf /www/luci-static/7dollar /www/luci-static/resources/7dollar /www/luci-static/resources/view/7dollar \
 		/usr/share/ucode/luci/template/themes/7dollar
 	rm -f /www/luci-static/resources/menu-7dollar.js /usr/share/luci/menu.d/luci-theme-7dollar.json \

@@ -66,6 +66,11 @@ return view.extend({
 		const nDev = `<div class="td-node"><div class="ic">${icon('devices')}</div><b id="td-ndev">—</b><small id="td-ndev-s">&nbsp;</small></div>`;
 		const lUp = link(' id="td-link-up"', 'td-lat'), lLan = link('', 'td-lan-t');
 		const topo = mode == 'side' ? nMe + lUp + nUp + lLan + nDev : nUp + lUp + nMe + lLan + nDev;
+		/* A side router receives and resends the same packets on one LAN port, so "down/up" would just
+		 * be the same number twice: show one "forwarded" figure instead. */
+		const rate = (id, label, cls) => `<div class="td-rate${cls || ''}"><small><i></i>${esc(label)}</small><span class="td-big" id="td-${id}">0</span><span class="td-unit" id="td-${id}-u">Kbps</span></div>`;
+		const rates = mode == 'side' ? rate('down', T('经过本机', 'Through this box'))
+		                             : rate('down', T('下载', 'Download')) + rate('up', T('上传', 'Upload'), ' up');
 		const os = board.release ? `${board.release.distribution} ${board.release.version}` : 'OpenWrt';
 
 		const root = td.html(`<div class="td-home">
@@ -92,10 +97,7 @@ return view.extend({
 
 				${card('rate', 'k-rate', `
 					<div class="td-card-h"><h3>${esc(T('实时速率', 'Live traffic'))}</h3><span class="td-muted">${esc(T('过去 2 分钟', 'Last 2 minutes'))}</span></div>
-					<div class="td-rates">
-						<div class="td-rate"><small><i></i>${esc(T('下载', 'Download'))}</small><span class="td-big" id="td-down">0</span><span class="td-unit" id="td-down-u">Kbps</span></div>
-						<div class="td-rate up"><small><i></i>${esc(T('上传', 'Upload'))}</small><span class="td-big" id="td-up">0</span><span class="td-unit" id="td-up-u">Kbps</span></div>
-					</div>
+					<div class="td-rates">${rates}</div>
 					<svg class="td-chart" id="td-chart" viewBox="0 0 600 118" preserveAspectRatio="none" aria-hidden="true"></svg>`)}
 
 				${card('dev', 'k-dev td-full-md', `
@@ -289,7 +291,7 @@ return view.extend({
 
 		if (info) this.s.info = info;
 
-		if (d && this.s.last) {
+		if (d && this.s.last && now - this.s.last.t < 10000) {
 			const dt = Math.max(0.5, (now - this.s.last.t) / 1000);
 			const rx = Math.max(0, (d.rx - this.s.last.rx) / dt), tx = Math.max(0, (d.tx - this.s.last.tx) / dt);
 			this.s.down.push(rx); this.s.down.shift();
@@ -302,7 +304,9 @@ return view.extend({
 
 		if (d) {
 			this.s.last = { t: now, rx: d.rx, tx: d.tx };
-			this.s.boot = T(`本次开机 ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`, `Since boot ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`);
+			this.s.boot = this.s.mode == 'side'
+				? T(`本次开机经过 ${td.bytes(d.rx)}`, `Since boot ${td.bytes(d.rx)}`)
+				: T(`本次开机 ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`, `Since boot ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`);
 			this.paintTags();
 		}
 
@@ -329,7 +333,7 @@ return view.extend({
 		svg.innerHTML = `<defs><linearGradient id="td-gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent);stop-opacity:.26"/><stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/></linearGradient></defs>`
 			+ `<path d="${path(down, true)}" fill="url(#td-gd)"/>`
 			+ `<path d="${path(down)}" fill="none" style="stroke:var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>`
-			+ `<path d="${path(up)}" fill="none" style="stroke:var(--second)" stroke-width="1.6" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>`;
+			+ (this.s.mode == 'side' ? '' : `<path d="${path(up)}" fill="none" style="stroke:var(--second)" stroke-width="1.6" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>`);
 	},
 
 	paintRings() {

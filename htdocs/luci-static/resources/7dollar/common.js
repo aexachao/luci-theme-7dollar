@@ -384,8 +384,10 @@ function clients(wifi) {
 		L.resolveDefault(callLeases(), {}),
 		L.resolveDefault(callHints(), {}),
 		wifi ? Promise.resolve(wifi) : wifiInfo(),
-		readFile('/proc/net/arp')
-	]).then(([ leases, hints, wi, arp ]) => {
+		readFile('/proc/net/arp'),
+		readFile('/proc/net/route')
+	]).then(([ leases, hints, wi, arp, rt ]) => {
+		const gw = (defaultRoute(rt) || {}).gw;
 		const byMac = {};
 		const get = mac => {
 			mac = String(mac).toUpperCase();
@@ -400,14 +402,6 @@ function clients(wifi) {
 			c.expires = l.expires;
 			c.lease = true;
 		});
-
-		for (const mac in (hints || {})) {
-			const h = hints[mac], c = byMac[mac.toUpperCase()];
-			if (c) {
-				c.name = c.name || h.name;
-				c.ip = c.ip || (h.ipaddrs || h.ipv4 || [])[0];
-			}
-		}
 
 		const wifiMacs = {};
 
@@ -426,18 +420,25 @@ function clients(wifi) {
 			wifiMacs[c.mac] = true;
 		}));
 
+		/* Wired devices are whatever answers ARP on the LAN, leased or not (static IPs, or a side
+		 * router whose DHCP is off). The gateway itself is the upstream router, not a device. */
 		String(arp || '').split('\n').slice(1).forEach(line => {
 			const f = line.trim().split(/\s+/);
-			if (f.length < 6 || f[2] != '0x2' || !/^br-|^lan|^eth/.test(f[5]))
+			if (f.length < 6 || f[2] != '0x2' || f[0] == gw || !/^br-lan|^lan/.test(f[5]) || wifiMacs[f[3].toUpperCase()])
 				return;
-			const mac = f[3].toUpperCase();
-			const c = byMac[mac];
-			if (!c || wifiMacs[mac] || !/^br-lan|^lan/.test(f[5]))
-				return;
+			const c = get(f[3]);
 			c.online = true;
 			c.conn = 'wired';
 			c.ip = c.ip || f[0];
 		});
+
+		for (const mac in (hints || {})) {
+			const h = hints[mac], c = byMac[mac.toUpperCase()];
+			if (c) {
+				c.name = c.name || h.name;
+				c.ip = c.ip || (h.ipaddrs || h.ipv4 || [])[0];
+			}
+		}
 
 		const list = Object.values(byMac).map(c => {
 			c.display = pretty(c.name) || c.ip || c.mac;

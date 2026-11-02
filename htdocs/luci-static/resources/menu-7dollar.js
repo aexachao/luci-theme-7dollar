@@ -1,6 +1,7 @@
 'use strict';
 'require baseclass';
 'require ui';
+'require poll';
 'require 7dollar.common as td';
 
 /*
@@ -17,6 +18,22 @@ return baseclass.extend({
 		ui.menu.load().then(L.bind(this.render, this));
 		this.bindKeys();
 		this.bindMode();
+		this.bindVisibility();
+	},
+
+	/* Every LuCI page refreshes through one shared poll loop; stop it while the tab is hidden so a
+	 * forgotten tab costs the router nothing. Coming back restarts it, which refreshes at once. */
+	bindVisibility() {
+		let paused = false;
+		document.addEventListener('visibilitychange', () => {
+			if (document.hidden) {
+				if (poll.active()) { poll.stop(); paused = true; }
+			}
+			else if (paused) {
+				paused = false;
+				poll.start();
+			}
+		});
 	},
 
 	render(tree) {

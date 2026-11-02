@@ -8,7 +8,6 @@ REPO=itsmaiGe/luci-theme-7dollar
 BRANCH=${BRANCH:-main}
 P=${PROXY:-}
 RAW="${P}https://raw.githubusercontent.com/$REPO/$BRANCH"
-TGZ="${P}https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz"
 TMP=/tmp/7dollar.$$
 
 say()  { printf '\033[38;5;173m●\033[0m %s\n' "$*"; }
@@ -26,27 +25,16 @@ mkdir -p "$TMP" || die "无法创建临时目录"
 
 say "7Dollar 主题安装中…"
 
-if command -v opkg >/dev/null 2>&1; then
-	get "$RAW/dist/latest.txt" "$TMP/latest" || die "下载失败，请检查网络，或设置 PROXY 后重试"
-	IPK=$(head -n1 "$TMP/latest" | tr -d '\r\n ')
-	say "下载 $IPK"
-	get "$RAW/dist/$IPK" "$TMP/$IPK" || die "下载失败，请检查网络，或设置 PROXY 后重试"
-	opkg install --force-reinstall "$TMP/$IPK" || die "opkg 安装失败"
+# opkg (OpenWrt 23.05 / 24.10) installs the .ipk, apk (OpenWrt 25.x) the .apk
+if command -v opkg >/dev/null 2>&1; then LIST=latest.txt; else LIST=latest-apk.txt; fi
+get "$RAW/dist/$LIST" "$TMP/latest" || die "下载失败，请检查网络，或设置 PROXY 后重试"
+PKG=$(head -n1 "$TMP/latest" | tr -d '\r\n ')
+say "下载 $PKG"
+get "$RAW/dist/$PKG" "$TMP/$PKG" || die "下载失败，请检查网络，或设置 PROXY 后重试"
+if [ "$LIST" = latest.txt ]; then
+	opkg install --force-reinstall "$TMP/$PKG" || die "opkg 安装失败"
 else
-	# apk based releases (OpenWrt 25.x): copy the files directly
-	say "未检测到 opkg，改用文件方式安装"
-	get "$TGZ" "$TMP/src.tgz" || die "下载失败，请检查网络，或设置 PROXY 后重试"
-	tar -xzf "$TMP/src.tgz" -C "$TMP" || die "解压失败"
-	S=$(find "$TMP" -maxdepth 1 -type d -name 'luci-theme-7dollar*' | head -n1)
-	[ -n "$S" ] || die "压缩包内容不正确"
-	cp -R "$S/htdocs/." /www/
-	mkdir -p /usr/share/ucode/luci && cp -R "$S/ucode/." /usr/share/ucode/luci/
-	[ -f /etc/config/7dollar ] && cp /etc/config/7dollar "$TMP/keep"
-	cp -R "$S/root/." /
-	[ -f "$TMP/keep" ] && cp "$TMP/keep" /etc/config/7dollar
-	chmod 755 /etc/uci-defaults/30_luci-theme-7dollar
-	( cd /etc/uci-defaults && . ./30_luci-theme-7dollar ) && rm /etc/uci-defaults/30_luci-theme-7dollar
-	/etc/init.d/rpcd reload >/dev/null 2>&1
+	apk add --allow-untrusted "$TMP/$PKG" || die "apk 安装失败"
 fi
 
 rm -rf "$TMP" /tmp/luci-indexcache* /tmp/luci-modulecache/

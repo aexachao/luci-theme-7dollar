@@ -1,0 +1,42 @@
+# Builds the OpenWrt 25.x (.apk) package inside an official OpenWrt 25.12 image,
+# installs and removes it on a clean one, then commits it to dist/.
+name: apk
+on:
+  push:
+    paths: [ Makefile, 'htdocs/**', 'ucode/**', 'root/**', 'scripts/**', '.github/workflows/apk.yml' ]
+  workflow_dispatch:
+permissions:
+  contents: write
+env:
+  IMG: openwrt/rootfs:x86-64-openwrt-25.12
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          curl -fsSL https://dl-cdn.alpinelinux.org/alpine/v3.23/main/x86_64/apk-tools-static-3.0.8-r0.apk | tar -xz sbin/apk.static
+          sudo APK=$PWD/sbin/apk.static sh scripts/build-apk.sh
+          sudo chown -R "$(id -u):$(id -g)" dist
+      - name: Install, check, remove
+        run: |
+          docker run --rm -v "$PWD/dist:/dist:ro" $IMG sh -euxc '
+            mkdir -p /var/lock /tmp
+            apk update && apk add luci-base
+            mkdir -p /www/luci-static/7dollar && echo stale > /www/luci-static/7dollar/cascade.css  # left by the old copy installer
+            apk add --allow-untrusted /dist/$(cat /dist/latest-apk.txt)
+            test "$(wc -c < /www/luci-static/7dollar/cascade.css)" -gt 1000
+            test -s /usr/share/ucode/luci/template/themes/7dollar/header.ut
+            test "$(uci get luci.main.mediaurlbase)" = /luci-static/7dollar
+            apk del luci-theme-7dollar
+            test ! -e /www/luci-static/7dollar
+            test "$(uci get luci.main.mediaurlbase)" = /luci-static/bootstrap'
+      - name: Commit
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git add -A dist
+          git diff --cached --quiet && exit 0
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "dist: $(cat dist/latest-apk.txt)"
+          git push
