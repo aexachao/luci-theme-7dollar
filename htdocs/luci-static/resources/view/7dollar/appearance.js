@@ -12,6 +12,8 @@ const CARDS = [
 	[ 'dev', T('在线设备', 'Online devices'), T('正在使用网络的设备', 'Devices currently online') ],
 	[ 'wifi', 'Wi‑Fi', T('名称、频段和连接数', 'Name, bands and clients'), 'network/wireless' ],
 	[ 'sys', T('路由器状态', 'Router status'), T('处理器、内存、温度', 'CPU, memory, temperature') ],
+	[ 'ports', T('网口', 'Ports'), T('哪些网口接了网线、速率多少', 'Which ports are plugged in, and how fast') ],
+	[ 'disk', T('存储空间', 'Storage'), T('还剩多少空间装插件', 'Space left for apps and settings') ],
 	[ 'actions', T('常用操作', 'Quick actions'), T('备份、软件包、诊断、日志', 'Backup, software, diagnostics, logs') ]
 ];
 

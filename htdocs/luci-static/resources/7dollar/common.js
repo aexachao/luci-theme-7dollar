@@ -24,6 +24,7 @@ const callLeases = rpc.declare({ object: 'luci-rpc', method: 'getDHCPLeases', ex
 const callHints = rpc.declare({ object: 'luci-rpc', method: 'getHostHints', expect: { '': {} } });
 const callWireless = rpc.declare({ object: 'luci-rpc', method: 'getWirelessDevices', expect: { '': {} } });
 const callAssoc = rpc.declare({ object: 'iwinfo', method: 'assoclist', params: [ 'device' ], expect: { results: [] } });
+const callDevices = rpc.declare({ object: 'luci-rpc', method: 'getNetworkDevices', expect: { '': {} } });
 const callIfDump = rpc.declare({ object: 'network.interface', method: 'dump', expect: { interface: [] } });
 const callBoard = rpc.declare({ object: 'system', method: 'board' });
 const callInfo = rpc.declare({ object: 'system', method: 'info' });
@@ -514,6 +515,18 @@ function wan() {
 	});
 }
 
+/* Physical Ethernet ports in use: the uplink port and whatever sits in a bridge (lan1…lan4, eth1, …).
+ * A VLAN on top (eth0.7, wan.10) counts as its port. */
+function ports(up) {
+	const base = n => String(n || '').split('.')[0];
+	const upPorts = up && up.mode != 'side' ? [ base(up.port), base(up.device) ] : [];
+	return L.resolveDefault(callDevices(), {}).then(devs => Object.values(devs || {})
+		.filter(d => d.devtype == 'ethernet' && !d.wireless && d.name.indexOf('.') < 0 && !/^(docker|veth|br-)/.test(d.name)
+		          && (d.master || upPorts.includes(d.name)))
+		.map(d => ({ name: d.name, wan: upPorts.includes(d.name), up: !!(d.link || {}).carrier, speed: +(d.link || {}).speed || 0 }))
+		.sort((a, b) => (b.wan - a.wan) || a.name.localeCompare(b.name, 'en', { numeric: true })));
+}
+
 const DNS_NAMES = {
 	'223.5.5.5': T('阿里', 'AliDNS'), '223.6.6.6': T('阿里', 'AliDNS'),
 	'119.29.29.29': T('腾讯', 'DNSPod'), '119.28.28.28': T('腾讯', 'DNSPod'), '182.254.116.116': T('腾讯', 'DNSPod'),
@@ -557,7 +570,7 @@ return baseclass.extend({
 	flatten: flatten, realNode: realNode, menuHas: menuHas, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
 	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast, motion: motion, leave: leave,
 	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, kind: kind, pretty: pretty,
-	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
+	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, ports: ports, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
 	board: () => L.resolveDefault(callBoard(), {}),
 	sysinfo: () => L.resolveDefault(callInfo(), {}),
 	service: name => L.resolveDefault(callService(name), {}),

@@ -3,7 +3,7 @@
 		"description": "Grant access to the 7Dollar theme dashboard and appearance settings",
 		"read": {
 			"ubus": {
-				"luci-rpc": [ "getDHCPLeases", "getHostHints", "getWirelessDevices" ],
+				"luci-rpc": [ "getDHCPLeases", "getHostHints", "getWirelessDevices", "getNetworkDevices" ],
 				"iwinfo": [ "assoclist" ],
 				"network.interface": [ "dump" ],
 				"system": [ "board", "info" ],

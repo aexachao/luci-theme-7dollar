@@ -55,7 +55,10 @@ return view.extend({
 		if (/bbr/.test(cc || '')) tags.push(T('BBR 拥塞控制', 'BBR congestion control'));
 		this.s.tags = tags;
 
-		const card = (key, cls, inner) => hidden.indexOf(key) > -1 ? '' : `<section class="td-card ${cls}" data-card="${key}">${inner}</section>`;
+		this.hidden = hidden;
+		let n = 1;
+		const card = (key, cls, inner) => hidden.indexOf(key) > -1 ? '' : `<section class="td-card ${cls}" data-card="${key}" style="--i:${n++}">${inner}</section>`;
+		const col = (...cards) => cards.join('') ? `<div class="td-col">${cards.join('')}</div>` : '';
 
 		/* Topology follows how this box is wired: main router (upstream → this → devices) or
 		 * side router / AP, which hangs off the main router next to the other devices. */
@@ -69,8 +72,9 @@ return view.extend({
 		/* A side router receives and resends the same packets on one LAN port, so "down/up" would just
 		 * be the same number twice: show one "forwarded" figure instead. */
 		const rate = (id, label, cls) => `<div class="td-rate${cls || ''}"><small><i></i>${esc(label)}</small><span class="td-big" id="td-${id}">0</span><span class="td-unit" id="td-${id}-u">Kbps</span></div>`;
-		const rates = mode == 'side' ? rate('down', T('经过本机', 'Through this box'))
-		                             : rate('down', T('下载', 'Download')) + rate('up', T('上传', 'Upload'), ' up');
+		const rates = (mode == 'side' ? rate('down', T('经过本机', 'Through this box'))
+		                              : rate('down', T('下载', 'Download')) + rate('up', T('上传', 'Upload'), ' up'))
+			+ `<div class="td-rate boot"><small>${esc(T('本次开机', 'Since boot'))}</small><span id="td-boot">—</span></div>`;
 		const os = board.release ? `${board.release.distribution} ${board.release.version}` : 'OpenWrt';
 
 		const root = td.html(`<div class="td-home">
@@ -83,8 +87,8 @@ return view.extend({
 				<a class="btn" href="${L.url('admin/system/reboot')}">${icon('refresh')}${esc(T('重启路由器', 'Reboot'))}</a>
 			</div>
 
-			<div class="td-grid${showOC ? ' has-oc' : ''}">
-				<section class="td-card k-conn td-full-md" data-card="conn">
+			<div class="td-grid"><div class="td-pair">
+				<section class="td-card k-conn" data-card="conn">
 					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip"></span></div>
 					<div class="td-topo">${topo}</div>
 					<dl class="td-facts">
@@ -99,16 +103,31 @@ return view.extend({
 					<div class="td-card-h"><h3>${esc(T('实时速率', 'Live traffic'))}</h3><span class="td-muted">${esc(T('过去 2 分钟', 'Last 2 minutes'))}</span></div>
 					<div class="td-rates">${rates}</div>
 					<svg class="td-chart" id="td-chart" viewBox="0 0 600 118" preserveAspectRatio="none" aria-hidden="true"></svg>`)}
+			</div><div class="td-cols">${col(
 
-				${card('dev', 'k-dev td-full-md', `
+				card('dev', 'k-dev', `
 					<div class="td-card-h"><h3>${esc(T('在线设备', 'Online devices'))}</h3><a href="${L.url('admin/clients')}">${esc(T('全部', 'All'))}${icon('chev')}</a></div>
-					<div id="td-devs"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`)}
+					<div id="td-devs"><div class="td-empty-row">${esc(T('正在读取…', 'Loading…'))}</div></div>`),
 
-				${this.s.hasWifi ? card('wifi', 'k-wifi', `
+				card('sys', 'k-sys', `
+					<div class="td-card-h"><h3>${esc(T('路由器状态', 'Router status'))}</h3><span class="td-muted">${esc(os)}</span></div>
+					<div class="td-rings">
+						${this.ring('cpu', T('处理器', 'CPU'))}
+						${this.ring('mem', T('内存', 'Memory'))}
+						${this.ring('temp', T('温度', 'Temperature'), 'warm')}
+					</div>
+					<div class="td-tags" id="td-tags"></div>`),
+
+				card('ports', 'k-ports', `
+					<div class="td-card-h"><h3>${esc(T('网口', 'Ports'))}</h3><span class="td-muted" id="td-ports-n"></span></div>
+					<dl class="td-kv" id="td-ports"></dl>`)
+			)}${col(
+
+				this.s.hasWifi ? card('wifi', 'k-wifi', `
 					<div class="td-card-h"><h3>Wi‑Fi</h3><a href="${L.url('admin/network/wireless')}">${esc(T('设置', 'Settings'))}${icon('chev')}</a></div>
-					<div id="td-wifi"></div>`) : ''}
+					<div id="td-wifi"></div>`) : '',
 
-				${showOC ? `<section class="td-card k-proxy" data-card="oc">
+				showOC ? `<section class="td-card k-proxy" data-card="oc" style="--i:${n++}">
 					<div class="td-card-h"><h3>OpenClash</h3><span class="td-chip mute" id="td-oc-chip"><span class="td-dot"></span>${esc(T('读取中', 'Loading'))}</span></div>
 					<dl class="td-kv">
 						<div><dt>${esc(T('运行模式', 'Run mode'))}</dt><dd id="td-oc-run">—</dd></div>
@@ -118,26 +137,21 @@ return view.extend({
 						<button type="button" data-m="rule">${esc(T('按规则', 'Rule'))}</button><button type="button" data-m="global">${esc(T('全局', 'Global'))}</button><button type="button" data-m="direct">${esc(T('直连', 'Direct'))}</button>
 					</div>
 					<a class="btn block" href="${L.url('admin/services/openclash')}">${esc(T('打开 OpenClash', 'Open OpenClash'))}${icon('arrow')}</a>
-				</section>` : ''}
+				</section>` : '',
 
-				${card('sys', 'k-sys', `
-					<div class="td-card-h"><h3>${esc(T('路由器状态', 'Router status'))}</h3><span class="td-muted">${esc(os)}</span></div>
-					<div class="td-rings">
-						${this.ring('cpu', T('处理器', 'CPU'))}
-						${this.ring('mem', T('内存', 'Memory'))}
-						${this.ring('temp', T('温度', 'Temperature'), 'warm')}
-					</div>
-					<div class="td-tags" id="td-tags"></div>`)}
+				card('disk', 'k-disk', `
+					<div class="td-card-h"><h3>${esc(T('存储空间', 'Storage'))}</h3></div>
+					<div id="td-disk"></div>`),
 
-				${card('actions', 'k-actions', `
+				card('actions', 'k-actions', `
 					<div class="td-card-h"><h3>${esc(T('常用操作', 'Quick actions'))}</h3></div>
 					<div class="td-acts">
 						${this.act('admin/system/flash', 'backup', T('备份配置', 'Back up'))}
 						${this.act('admin/system/package-manager', 'box', T('软件包', 'Software'))}
 						${this.act('admin/network/diagnostics', 'pulse', T('网络诊断', 'Diagnostics'))}
 						${this.act('admin/status/logs', 'doc', T('查看日志', 'Logs'))}
-					</div>`)}
-			</div>
+					</div>`)
+			)}</div></div>
 		</div>`);
 
 		this.root = root;
@@ -146,6 +160,9 @@ return view.extend({
 		this.greet();
 		this.paintStatic();
 		this.paintWifi(this.s.wifi);
+		this.paintDisk();
+		this.refreshPorts();
+		this.ticks = 0;
 		this.sample(dev, info);
 		this.refreshClients();
 		this.pingGateway();
@@ -215,8 +232,7 @@ return view.extend({
 	paintTags() {
 		const box = this.$('td-tags');
 		if (box)
-			box.innerHTML = this.s.tags.map(t => `<span class="td-tag">${icon('check')}${esc(t)}</span>`).join('')
-				+ (this.s.boot ? `<span class="td-tag">${esc(this.s.boot)}</span>` : '');
+			box.innerHTML = this.s.tags.map(t => `<span class="td-tag">${icon('check')}${esc(t)}</span>`).join('');
 	},
 
 	paintWifi(wifi) {
@@ -224,33 +240,66 @@ return view.extend({
 		this.s.wifi = wifi;
 		if (!box) return;
 
-		const radios = wifi.radios || {};
-		const aps = wifi.aps || [];
+		const radios = wifi.radios || {}, aps = wifi.aps || [];
+		const devs = k => k + ' ' + T('台', k == 1 ? 'client' : 'clients');
 		const n = aps.reduce((a, ap) => a + ap.stations.length, 0);
 		const guest = aps.find(a => (a.network || []).some(x => /guest/i.test(x)));
 		/* The headline is the network people mostly join: 5 GHz first (2.4 GHz is often the
-		 * smart-home one), never the guest network. A band whose name differs says so in its row. */
+		 * smart-home one), never the guest network. A band with another name shows it on its tile. */
 		const rank = ap => (ap.up ? 10 : 0) + (ap == guest ? -5 : 0) + ({ '5g': 3, '6g': 2, '2g': 1 }[ap.band] || 0);
 		const main = aps.slice().sort((a, b) => rank(b) - rank(a))[0];
+		const tile = (label, value, sub, off) => `<div${off ? ' class="off"' : ''}><dt>${esc(label)}</dt><dd>${esc(value)}</dd>${sub ? `<dd>${esc(sub)}</dd>` : ''}</div>`;
 
-		let rows = Object.keys(radios).sort((a, b) => String((radios[a].config || {}).band).localeCompare(String((radios[b].config || {}).band))).map(r => {
+		const tiles = Object.keys(radios).sort((a, b) => String((radios[a].config || {}).band).localeCompare(String((radios[b].config || {}).band))).map(r => {
 			const c = radios[r].config || {}, iw = (radios[r].iwinfo || {});
 			const on = radios[r].up && !c.disabled;
 			const width = String(c.htmode || '').replace(/^[A-Z]+/, '');
-			const mine = aps.filter(a => a.radio == r);
-			const cnt = mine.reduce((a, ap) => a + ap.stations.length, 0);
-			const other = [ ...new Set(mine.filter(a => a != guest && a.ssid && a.ssid != (main || {}).ssid).map(a => a.ssid)) ].join(' / ');
-			return `<div class="td-band"><b>${esc(td.bandName(c.band))}${other ? ` <small>${esc(other)}</small>` : ''}</b>${on
-				? `<span>${esc(T('信道', 'Ch') + ' ' + (iw.channel || c.channel || 'auto'))}${width ? ' · ' + esc(width) + ' MHz' : ''} · ${cnt} ${esc(T('台', cnt == 1 ? 'client' : 'clients'))}</span>`
-				: `<span class="td-chip mute">${esc(T('已关闭', 'Off'))}</span>`}</div>`;
-		}).join('');
+			const mine = aps.filter(a => a.radio == r && a != guest);
+			const other = [ ...new Set(mine.filter(a => a.ssid && a.ssid != (main || {}).ssid).map(a => a.ssid)) ].join(' / ');
+			return tile(td.bandName(c.band) + (other ? ' · ' + other : ''),
+				on ? devs(mine.reduce((a, ap) => a + ap.stations.length, 0)) : T('已关闭', 'Off'),
+				on ? `${T('信道', 'Ch')} ${iw.channel || c.channel || 'auto'}${width ? ` · ${width} MHz` : ''}` : '', !on);
+		});
 
 		if (guest)
-			rows += `<div class="td-band"><b>${esc(T('访客网络', 'Guest network'))}</b>${guest.up ? `<span class="td-chip">${esc(T('已开启', 'On'))}</span>` : `<span class="td-chip mute">${esc(T('未开启', 'Off'))}</span>`}</div>`;
+			tiles.push(tile(T('访客网络', 'Guest network'), guest.up ? devs(guest.stations.length) : T('未开启', 'Off'), guest.ssid, !guest.up));
 
-		box.innerHTML = main
-			? `<div class="td-ssid">${esc(main.ssid || '—')}</div><p class="td-muted" style="font-size:13px;margin-bottom:16px">${esc(n + ' ' + T('台设备已连接', n == 1 ? 'device connected' : 'devices connected'))}</p>${rows}`
-			: `<div class="td-ssid td-muted">${esc(T('未开启', 'Off'))}</div><p class="td-muted" style="font-size:13px;margin-bottom:16px">${esc(T('这台路由器还没有开启无线网络', 'No wireless network is enabled'))}</p>${rows}`;
+		box.innerHTML = (main
+			? `<div class="td-ssid">${esc(main.ssid || '—')}</div><p class="td-muted td-ssid-s">${esc(n + ' ' + T('台设备已连接', n == 1 ? 'device connected' : 'devices connected'))}</p>`
+			: `<div class="td-ssid td-muted">${esc(T('未开启', 'Off'))}</div><p class="td-muted td-ssid-s">${esc(T('这台路由器还没有开启无线网络', 'No wireless network is enabled'))}</p>`)
+			+ (tiles.length ? `<dl class="td-kv">${tiles.join('')}</dl>` : '');
+	},
+
+	/* ---------- ports and storage: one port query every 30 s, storage comes with the system info we already poll ---------- */
+
+	refreshPorts() {
+		if (!this.$('td-ports')) return Promise.resolve();
+		return td.ports(this.s.wan).then(list => {
+			const lan = list.filter(p => !p.wan);
+			let k = 0;
+			this.set('td-ports-n', T(`${list.filter(p => p.up).length} / ${list.length} 已接网线`, `${list.filter(p => p.up).length} of ${list.length} in use`));
+			this.$('td-ports').innerHTML = list.map(p => {
+				const m = /^lan(\d+)$/.exec(p.name);
+				const name = p.wan ? 'WAN' : m ? 'LAN ' + m[1] : lan.length > 1 ? 'LAN ' + ++k : 'LAN';
+				const slow = p.up && p.speed > 0 && p.speed <= 10;
+				const speed = !p.up ? T('未接网线', 'Unplugged') : p.speed > 0 ? (p.speed >= 1000 ? p.speed / 1000 + ' Gbps' : p.speed + ' Mbps') : T('已连接', 'Connected');
+				return `<div${p.up ? '' : ' class="off"'}><dt>${esc(name)}</dt><dd${slow ? ' class="warn"' : ''}>${esc(speed)}</dd>${slow ? `<dd>${esc(T('速率太低，检查网线', 'Too slow, check the cable'))}</dd>` : ''}</div>`;
+			}).join('');
+		});
+	},
+
+	paintDisk() {
+		const box = this.$('td-disk');
+		if (!box) return;
+		const info = this.s.info || {};
+		const row = (label, d) => {
+			if (!d || !d.total) return '';
+			const used = d.used != null ? d.used : d.total - d.free, pct = Math.round(used / d.total * 100);
+			return `<div class="td-meter"><p><b>${esc(label)}</b><span>${esc(T(`剩余 ${td.bytes((d.avail != null ? d.avail : d.free) * 1024)} / 共 ${td.bytes(d.total * 1024)}`,
+				`${td.bytes((d.avail != null ? d.avail : d.free) * 1024)} free of ${td.bytes(d.total * 1024)}`))}</span></p><div class="td-bar${pct >= 90 ? ' full' : ''}"><i style="width:${pct}%"></i></div></div>`;
+		};
+		const html = row(T('系统空间', 'System'), info.root) + row(T('临时文件', 'Temporary files'), info.tmp) + row(T('虚拟内存', 'Swap'), info.swap);
+		if (html != this.s.disk) box.innerHTML = this.s.disk = html;
 	},
 
 	refreshClients() {
@@ -310,10 +359,7 @@ return view.extend({
 
 		if (d) {
 			this.s.last = { t: now, rx: d.rx, tx: d.tx };
-			this.s.boot = this.s.mode == 'side'
-				? T(`本次开机经过 ${td.bytes(d.rx)}`, `Since boot ${td.bytes(d.rx)}`)
-				: T(`本次开机 ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`, `Since boot ↓ ${td.bytes(d.rx)} · ↑ ${td.bytes(d.tx)}`);
-			this.paintTags();
+			this.set('td-boot', this.s.mode == 'side' ? td.bytes(d.rx) : `↓ ${td.bytes(d.rx)}  ↑ ${td.bytes(d.tx)}`);
 		}
 
 		this.paintRings();
@@ -389,8 +435,9 @@ return view.extend({
 			if (!!(wan && wan.up) != !!was) { this.greet(); }
 			this.paintWifi(wifi);
 			this.paintStatic();
+			this.paintDisk();
 			this.pingGateway();
-			return this.refreshClients();
+			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : this.refreshPorts() ]);
 		});
 	},
 
