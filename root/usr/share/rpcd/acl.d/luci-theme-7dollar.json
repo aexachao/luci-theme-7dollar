@@ -23,6 +23,13 @@
 				"/sys/class/thermal/thermal_zone*/temp": [ "read" ],
 				"/sys/class/hwmon/hwmon*/name": [ "read" ],
 				"/sys/class/hwmon/hwmon*/temp1_input": [ "read" ],
+				"/proc/[0-9]*/net/dev": [ "read" ],
+				"/proc/[0-9]*/net/route": [ "read" ],
+				"/proc/[0-9]*/net/arp": [ "read" ],
+				"/sys/devices/*/thermal_zone*/type": [ "read" ],
+				"/sys/devices/*/thermal_zone*/temp": [ "read" ],
+				"/sys/devices/*/hwmon*/name": [ "read" ],
+				"/sys/devices/*/hwmon*/temp1_input": [ "read" ],
 				"/sys/module/mt7915e/parameters/wed_enable": [ "read" ],
 				"/bin/ping": [ "exec" ]
 			},

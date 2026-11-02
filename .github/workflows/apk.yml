@@ -21,7 +21,7 @@ jobs:
           sudo chown -R "$(id -u):$(id -g)" dist
       - name: Install, check, remove
         run: |
-          docker run --rm -v "$PWD/dist:/dist:ro" $IMG sh -euxc '
+          docker run --rm -i -v "$PWD/dist:/dist:ro" $IMG sh -eux <<'SH'
             mkdir -p /var/lock /tmp
             apk update && apk add luci-base
             mkdir -p /www/luci-static/7dollar && echo stale > /www/luci-static/7dollar/cascade.css  # left by the old copy installer
@@ -29,9 +29,22 @@ jobs:
             test "$(wc -c < /www/luci-static/7dollar/cascade.css)" -gt 1000
             test -s /usr/share/ucode/luci/template/themes/7dollar/header.ut
             test "$(uci get luci.main.mediaurlbase)" = /luci-static/7dollar
+            # the dashboard reads these through rpcd, which checks the ACL against the resolved path on 25.x
+            apk add uhttpd uhttpd-mod-ubus >/dev/null
+            printf "pw\npw\n" | passwd root >/dev/null
+            ubusd & sleep 1; rpcd & sleep 1; uhttpd -p 127.0.0.1:8080 -h /www -u /ubus; sleep 1
+            rpc() { wget -qO- --post-data "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"call\",\"params\":$1}" http://127.0.0.1:8080/ubus; }
+            S=$(rpc '["00000000000000000000000000000000","session","login",{"username":"root","password":"pw"}]' | jsonfilter -e '@.result[1].ubus_rpc_session')
+            for f in /proc/stat /proc/net/dev /proc/net/route /proc/net/arp; do
+              rpc "[\"$S\",\"file\",\"read\",{\"path\":\"$f\"}]" | grep -q '"result":\[0,' || { echo "denied: $f"; exit 1; }
+            done
+            for f in /sys/devices/virtual/thermal/thermal_zone0/temp /sys/devices/platform/coretemp.0/hwmon/hwmon1/temp1_input; do
+              ubus call session access "{\"ubus_rpc_session\":\"$S\",\"scope\":\"file\",\"object\":\"$f\",\"function\":\"read\"}" | grep -q true || { echo "denied: $f"; exit 1; }
+            done
             apk del luci-theme-7dollar
             test ! -e /www/luci-static/7dollar
-            test "$(uci get luci.main.mediaurlbase)" = /luci-static/bootstrap'
+            test "$(uci get luci.main.mediaurlbase)" = /luci-static/bootstrap
+          SH
       - name: Commit
         if: github.ref == 'refs/heads/main'
         run: |
