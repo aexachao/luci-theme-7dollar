@@ -169,7 +169,7 @@ function flip(sec) {
 	const to = sec.offsetHeight;
 	sec.classList.add('td-open', open ? 'td-opening' : 'td-closing');
 
-	const anim = box && sec.animate({ height: [ `${from}px`, `${to}px` ] }, { duration: ms, fill: 'forwards', easing: getComputedStyle(sec).getPropertyValue('--ease').trim() });
+	const anim = box ? sec.animate({ height: [ `${from}px`, `${to}px` ] }, { duration: ms, fill: 'forwards', easing: getComputedStyle(sec).getPropertyValue('--ease').trim() }) : null;
 	if (anim) sec.style.overflow = 'hidden';
 	const end = sec._end = () => {
 		sec._end = null;
