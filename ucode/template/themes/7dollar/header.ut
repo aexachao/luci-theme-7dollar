@@ -46,7 +46,7 @@
 		<div class="td-app">
 			<aside class="td-side">
 				<a class="td-brand" href="{{ dispatcher.build_url('admin') }}">
-					<svg width="34" height="34" aria-hidden="true"><use href="{{ sprite }}#mark"></use></svg>
+					<svg width="32" height="32" aria-hidden="true"><use href="{{ sprite }}#mark"></use></svg>
 					<div><b>{{ hostname }}</b><small>{{ striptags(boardinfo.model ?? 'OpenWrt') }}</small></div>
 				</a>
 				<button class="td-search" type="button" id="td-search" title="{{ T('搜索', 'Search') }}">
