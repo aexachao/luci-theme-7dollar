@@ -225,16 +225,22 @@ return view.extend({
 		if (!box) return;
 
 		const radios = wifi.radios || {};
-		const main = (wifi.aps || []).find(a => a.up) || (wifi.aps || [])[0];
-		const n = (wifi.aps || []).reduce((a, ap) => a + ap.stations.length, 0);
-		const guest = (wifi.aps || []).find(a => (a.network || []).some(x => /guest/i.test(x)));
+		const aps = wifi.aps || [];
+		const n = aps.reduce((a, ap) => a + ap.stations.length, 0);
+		const guest = aps.find(a => (a.network || []).some(x => /guest/i.test(x)));
+		/* The headline is the network people mostly join: 5 GHz first (2.4 GHz is often the
+		 * smart-home one), never the guest network. A band whose name differs says so in its row. */
+		const rank = ap => (ap.up ? 10 : 0) + (ap == guest ? -5 : 0) + ({ '5g': 3, '6g': 2, '2g': 1 }[ap.band] || 0);
+		const main = aps.slice().sort((a, b) => rank(b) - rank(a))[0];
 
 		let rows = Object.keys(radios).sort((a, b) => String((radios[a].config || {}).band).localeCompare(String((radios[b].config || {}).band))).map(r => {
 			const c = radios[r].config || {}, iw = (radios[r].iwinfo || {});
 			const on = radios[r].up && !c.disabled;
 			const width = String(c.htmode || '').replace(/^[A-Z]+/, '');
-			const cnt = (wifi.aps || []).filter(a => a.radio == r).reduce((a, ap) => a + ap.stations.length, 0);
-			return `<div class="td-band"><b>${esc(td.bandName(c.band))}</b>${on
+			const mine = aps.filter(a => a.radio == r);
+			const cnt = mine.reduce((a, ap) => a + ap.stations.length, 0);
+			const other = [ ...new Set(mine.filter(a => a != guest && a.ssid && a.ssid != (main || {}).ssid).map(a => a.ssid)) ].join(' / ');
+			return `<div class="td-band"><b>${esc(td.bandName(c.band))}${other ? ` <small>${esc(other)}</small>` : ''}</b>${on
 				? `<span>${esc(T('信道', 'Ch') + ' ' + (iw.channel || c.channel || 'auto'))}${width ? ' · ' + esc(width) + ' MHz' : ''} · ${cnt} ${esc(T('台', cnt == 1 ? 'client' : 'clients'))}</span>`
 				: `<span class="td-chip mute">${esc(T('已关闭', 'Off'))}</span>`}</div>`;
 		}).join('');

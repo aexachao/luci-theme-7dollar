@@ -693,8 +693,8 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 /* wifi */
 .td-ssid{font:500 34px/1.05 var(--serif);margin:2px 0 10px;overflow-wrap:anywhere}
 .td-band{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--line-soft);font-size:13.5px}
-.td-band>b{font-weight:500}
-.td-band>span{color:var(--ink-3);display:flex;gap:8px;align-items:center}
+.td-band>b{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.td-band>b small{font-weight:400;color:var(--ink-3);margin-left:6px}
+.td-band>span{color:var(--ink-3);display:flex;gap:8px;align-items:center;flex:none}
 
 /* plugin card */
 .td-seg{display:inline-flex;flex-wrap:wrap;padding:3px;border-radius:11px;background:var(--surface-2);gap:2px;max-width:100%}
