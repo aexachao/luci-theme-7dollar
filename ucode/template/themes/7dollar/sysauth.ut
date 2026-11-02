@@ -6,6 +6,8 @@
 {% include('header', { blank_page: true }) %}
 
 {%
+	import { model } from 'luci.7dollar';
+
 	const board = ubus.call('system', 'board') ?? {};
 	const zh = !!match(dispatcher.lang ?? '', /^zh/);
 	const T = (z, e) => zh ? z : e;
@@ -20,7 +22,7 @@
 
 	<form class="td-lbox" method="post" id="td-login">
 		<h1 class="td-serif">{{ T('欢迎回来', 'Welcome back') }}</h1>
-		<p class="td-sub">{{ striptags(board.hostname ?? 'OpenWrt') }} · {{ striptags(board.model ?? '') }}</p>
+		<p class="td-sub">{{ striptags(board.hostname ?? 'OpenWrt') }} · {{ striptags(model(board)) }}</p>
 
 		{% if (fuser): %}
 		<div class="td-lerr" role="alert">{{ T('密码不正确，请再试一次。', 'Wrong password, please try again.') }}</div>

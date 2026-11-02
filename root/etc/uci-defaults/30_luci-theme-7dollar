@@ -1,13 +1,12 @@
 #!/bin/sh
-# Register the 7Dollar theme and make it the active one on first install.
+# Register the 7Dollar theme. Make it the active one on a fresh install only:
+# an upgrade keeps whatever theme the user picked.
 
 [ -f /etc/config/7dollar ] || printf "\nconfig theme 'main'\n\toption palette 'clay'\n\toption mode 'auto'\n\toption plugin_openclash '0'\n" > /etc/config/7dollar
 
-uci -q batch <<-UCI
-	set luci.themes.7Dollar=/luci-static/7dollar
-	set luci.main.mediaurlbase=/luci-static/7dollar
-	commit luci
-UCI
+uci -q set luci.themes.7Dollar=/luci-static/7dollar
+[ "$PKG_UPGRADE" = 1 ] || uci -q set luci.main.mediaurlbase=/luci-static/7dollar
+uci -q commit luci
 
 rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache/ 2>/dev/null
 exit 0

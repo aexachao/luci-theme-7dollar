@@ -5,6 +5,7 @@
 
 {%
 	import { getuid, getspnam } from 'luci.core';
+	import { model as boardModel } from 'luci.7dollar';
 
 	const boardinfo = ubus.call('system', 'board') ?? {};
 	const conf = uci.get_all('7dollar', 'main') ?? {};
@@ -14,11 +15,7 @@
 	const T = (z, e) => zh ? z : e;
 	const ver = '1.0.7';
 	const hostname = striptags(boardinfo.hostname ?? 'OpenWrt');
-	/* x86 boxes often keep the BIOS placeholder ("Default string", "To be filled by O.E.M.") as their model;
-	 * name them by CPU instead, e.g. "Intel Celeron N5105", from the board info we already have. */
-	const junk = m => !m || match(m, /default string|to be filled|o\.e\.m|system product name|not (specified|applicable)/i);
-	const model = striptags(!junk(boardinfo.model) ? boardinfo.model
-		: trim(replace(replace(boardinfo.system ?? '', /\((R|TM)\)|\bCPU\b|@.*$/g, ''), /\s+/g, ' ')) || boardinfo.release?.distribution || 'OpenWrt');
+	const model = striptags(boardModel(boardinfo));
 	const sprite = `${media}/icons.svg`;
 
 	http.prepare_content('text/html; charset=UTF-8');
@@ -34,8 +31,8 @@
 			(function(r){if(r.getAttribute('data-mode')!=='auto')return;var d=window.matchMedia('(prefers-color-scheme: dark)').matches;r.setAttribute('data-theme',d?'dark':'light');r.setAttribute('data-darkmode',d)})(document.documentElement);
 		</script>
 		<link rel="stylesheet" href="{{ media }}/cascade.css?v={{ ver }}">
-		<link rel="icon" href="{{ media }}/logo.svg" type="image/svg+xml">
-		<link rel="apple-touch-icon" href="{{ media }}/logo.svg">
+		<link rel="icon" href="{{ media }}/logo.svg?v={{ ver }}" type="image/svg+xml">
+		<link rel="apple-touch-icon" href="{{ media }}/logo.svg?v={{ ver }}">
 		{% if (node?.css): %}
 		<link rel="stylesheet" href="{{ resource }}/{{ node.css }}">
 		{% endif %}
@@ -43,7 +40,7 @@
 		<style title="text/css">{{ css }}</style>
 		{% endif %}
 		<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
-		<script src="{{ resource }}/cbi.js?v={{ ver }}"></script>
+		<script src="{{ resource }}/cbi.js?v={{ version.luciversion }}"></script>
 	</head>
 
 	<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', ctx.request_path), true) }}">

@@ -248,7 +248,7 @@ return view.extend({
 	},
 
 	refreshClients() {
-		return td.clients(this.s.wifi).then(list => {
+		return td.clients(this.s.wifi, this.s.wan).then(list => {
 			const online = list.filter(c => c.online);
 			this.s.clients = online;
 			this.set('td-ndev', online.length + ' ' + T('台设备', online.length == 1 ? 'device' : 'devices'));

@@ -184,8 +184,8 @@ kbd{font:11px var(--sans);padding:1px 6px;border:1px solid var(--line);border-ra
 
 /* ============================== buttons ============================== */
 button,input,select,textarea{font:inherit;color:inherit}
-.btn,.cbi-button,input[type=button],input[type=submit],input[type=reset]{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 15px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:500;font-size:13.5px;line-height:1.2;white-space:nowrap;cursor:pointer;text-decoration:none!important;transition:background var(--fast) var(--ease),border-color var(--fast) var(--ease),color var(--fast) var(--ease),box-shadow var(--fast) var(--ease);vertical-align:middle;width:auto;height:auto}
-.btn:hover,.cbi-button:hover,input[type=button]:hover,input[type=submit]:hover,input[type=reset]:hover{border-color:var(--ink-3)}
+.btn,.cbi-button,:where(input)[type=button],:where(input)[type=submit],:where(input)[type=reset]{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 15px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:500;font-size:13.5px;line-height:1.2;white-space:nowrap;cursor:pointer;text-decoration:none!important;transition:background var(--fast) var(--ease),border-color var(--fast) var(--ease),color var(--fast) var(--ease),box-shadow var(--fast) var(--ease);vertical-align:middle;width:auto;height:auto}
+.btn:hover,.cbi-button:hover,:where(input)[type=button]:hover,:where(input)[type=submit]:hover,:where(input)[type=reset]:hover{border-color:var(--ink-3)}
 .btn:focus-visible,.cbi-button:focus-visible{outline:0;box-shadow:0 0 0 4px var(--tint);border-color:var(--accent)}
 .btn:active,.cbi-button:active{transform:translateY(1px)}
 .btn[disabled],.cbi-button[disabled],button[disabled],input[disabled][type=button],input[disabled][type=submit]{opacity:.45;pointer-events:none;cursor:default}

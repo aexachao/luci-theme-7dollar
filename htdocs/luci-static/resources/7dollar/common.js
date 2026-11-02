@@ -394,15 +394,18 @@ function wifiInfo() {
 	});
 }
 
-function clients(wifi) {
+function clients(wifi, uplink) {
 	return Promise.all([
 		L.resolveDefault(callLeases(), {}),
 		L.resolveDefault(callHints(), {}),
 		wifi ? Promise.resolve(wifi) : wifiInfo(),
 		readFile('/proc/net/arp'),
-		readFile('/proc/net/route')
-	]).then(([ leases, hints, wi, arp, rt ]) => {
-		const gw = (defaultRoute(rt) || {}).gw;
+		uplink !== undefined ? uplink : wan()
+	]).then(([ leases, hints, wi, arp, up ]) => {
+		up = up || {};
+		/* neighbours on the uplink side (a main router's WAN port, a repeater's Wi-Fi link) are not
+		 * our devices; a side router's uplink is the LAN itself, so there only the gateway is skipped */
+		const skip = up.mode == 'side' ? [] : [ up.device, up.port ];
 		const byMac = {};
 		const get = mac => {
 			mac = String(mac).toUpperCase();
@@ -435,11 +438,12 @@ function clients(wifi) {
 			wifiMacs[c.mac] = true;
 		}));
 
-		/* Wired devices are whatever answers ARP on the LAN, leased or not (static IPs, or a side
-		 * router whose DHCP is off). The gateway itself is the upstream router, not a device. */
+		/* Wired devices are whatever answers ARP on our side, leased or not (static IPs, or a side
+		 * router whose DHCP is off), whatever the LAN is called (br-lan, eth0, br-lan.10 ...).
+		 * The gateway is the upstream router; containers and loopback are not devices either. */
 		String(arp || '').split('\n').slice(1).forEach(line => {
 			const f = line.trim().split(/\s+/);
-			if (f.length < 6 || f[2] != '0x2' || f[0] == gw || !/^br-lan|^lan/.test(f[5]) || wifiMacs[f[3].toUpperCase()])
+			if (f.length < 6 || f[2] != '0x2' || f[0] == up.gw || skip.includes(f[5]) || /^(lo|docker|veth)|^br-[0-9a-f]{12}$/.test(f[5]) || wifiMacs[f[3].toUpperCase()])
 				return;
 			const c = get(f[3]);
 			c.online = true;
@@ -500,6 +504,7 @@ function wan() {
 			mode: lan && dev(lan) == def.dev ? 'side' : /-sta\d+$/.test(def.dev) ? 'sta' : 'wan',
 			proto: i.proto,
 			device: def.dev,
+			port: i.device,
 			ip: ((i['ipv4-address'] || [])[0] || {}).address,
 			ip6: ((i['ipv6-address'] || [])[0] || {}).address,
 			gw: def.gw != '0.0.0.0' ? def.gw : null,

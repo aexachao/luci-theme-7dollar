@@ -162,7 +162,7 @@ uci set luci.main.mediaurlbase=/luci-static/bootstrap && uci commit luci
 | | |
 | --- | --- |
 | OpenWrt | 23.05、24.10（ipk），25.x（apk）；不支持 22.03 及更早版本 |
-| 浏览器 | 近两年的 Chrome、Edge、Safari、Firefox 及手机浏览器 |
+| 浏览器 | Chrome / Edge 111+、Safari 16.4+、Firefox 113+（2023 年以后的版本） |
 | 已测试 | Cudy TR3000 · OpenWrt 24.10.5 · MT7981B |
 | 共存 | 可与 Bootstrap、Argon 等主题同时安装 |
 
@@ -171,7 +171,7 @@ uci set luci.main.mediaurlbase=/luci-static/bootstrap && uci commit luci
 ```
 htdocs/luci-static/7dollar/      样式、图标、Logo
 htdocs/luci-static/resources/    导航与页面脚本
-ucode/template/themes/7dollar/   页面框架、登录页
+ucode/                           页面框架、登录页
 root/                            默认配置、菜单、权限
 dist/                            ipk / apk 安装包
 install.sh / uninstall.sh        安装 / 卸载脚本
