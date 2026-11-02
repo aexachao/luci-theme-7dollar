@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-theme-7dollar
-PKG_VERSION:=1.0.7
+PKG_VERSION:=1.0.8
 PKG_RELEASE:=1
 
 LUCI_TITLE:=7Dollar — an elegant, lightweight LuCI theme
@@ -25,6 +25,7 @@ endef
 
 define Package/luci-theme-7dollar/postrm
 #!/bin/sh
+[ "$$1" = upgrade ] && exit 0
 [ -n "$${IPKG_INSTROOT}" ] || {
 	uci -q delete luci.themes.7Dollar
 	[ "$$(uci -q get luci.main.mediaurlbase)" = "/luci-static/7dollar" ] && \

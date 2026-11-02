@@ -58,6 +58,7 @@ default_prerm $0 $@
 SH
 cat > "$C/postrm" <<'SH'
 #!/bin/sh
+[ "$1" = upgrade ] && exit 0   # opkg runs this on upgrades too; only a real removal unregisters
 [ -n "${IPKG_INSTROOT}" ] || {
 	uci -q delete luci.themes.7Dollar
 	[ "$(uci -q get luci.main.mediaurlbase)" = "/luci-static/7dollar" ] && \
