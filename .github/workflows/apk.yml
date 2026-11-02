@@ -22,7 +22,7 @@ jobs:
       - name: Install, check, remove
         run: |
           docker run --rm -i -v "$PWD/dist:/dist:ro" $IMG sh -eux <<'SH'
-            mkdir -p /var/lock /tmp
+            mkdir -p /var/lock /var/run /tmp
             apk update && apk add luci-base
             mkdir -p /www/luci-static/7dollar && echo stale > /www/luci-static/7dollar/cascade.css  # left by the old copy installer
             apk add --allow-untrusted /dist/$(cat /dist/latest-apk.txt)
