@@ -283,7 +283,7 @@ return view.extend({
 				const name = p.wan ? 'WAN' : m ? 'LAN ' + m[1] : lan.length > 1 ? 'LAN ' + ++k : 'LAN';
 				const slow = p.up && p.speed > 0 && p.speed <= 10;
 				const speed = !p.up ? T('未接网线', 'Unplugged') : p.speed > 0 ? (p.speed >= 1000 ? p.speed / 1000 + ' Gbps' : p.speed + ' Mbps') : T('已连接', 'Connected');
-				return `<div${p.up ? '' : ' class="off"'}><dt>${esc(name)}</dt><dd${slow ? ' class="warn"' : ''}>${esc(speed)}</dd>${slow ? `<dd>${esc(T('速率太低，检查网线', 'Too slow, check the cable'))}</dd>` : ''}</div>`;
+				return `<div${p.up ? '' : ' class="off"'}><dt>${esc(name)}</dt><dd>${esc(speed)}</dd>${slow ? `<dd>${esc(T('对方休眠中，或网线不良', 'Device asleep, or a bad cable'))}</dd>` : ''}</div>`;
 			}).join('');
 		});
 	},
