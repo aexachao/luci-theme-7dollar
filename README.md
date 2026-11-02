@@ -5,13 +5,13 @@
 <h1 align="center">7Dollar</h1>
 
 <p align="center">
-  简洁、轻量的 OpenWrt LuCI 主题<br>
-  <sub>A clean, lightweight theme for OpenWrt LuCI</sub>
+  不像工程师后台的 OpenWrt 主题<br>
+  <sub>An OpenWrt theme that doesn't look like an engineer's console</sub>
 </p>
 
 <p align="center">
   <img alt="OpenWrt" src="https://img.shields.io/badge/OpenWrt-23.05%20%7C%2024.10%20%7C%2025.12-D97757?style=flat-square">
-  <img alt="Size" src="https://img.shields.io/badge/size-46%20KB-8A7F72?style=flat-square">
+  <img alt="Size" src="https://img.shields.io/badge/size-49%20KB-8A7F72?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-5B6F9A?style=flat-square">
 </p>
 
@@ -22,6 +22,21 @@
 <p align="center">
   <img src="docs/home-light.webp" alt="首页" width="100%">
 </p>
+
+## 为什么做它
+
+OpenWrt 的大多数主题只换了颜色，页面还是满屏参数、表格和英文缩写，不懂网络的人很难看懂。7Dollar 想让任何人打开后台都能看懂。
+
+| | 常见主题 | 7Dollar |
+| --- | --- | --- |
+| 首页 | 一屏参数表 | 一张图看清：网通不通、多快、谁在用 |
+| 菜单 | 按技术模块分：状态 / 系统 / 服务 / 网络 | 按要做的事分：设备 / Wi‑Fi / 上网 / 安全 |
+| 设备 | MAC 地址和 IP 列表 | 设备名、类型、信号好坏、连了多久 |
+| 状态页 | 所有字段一次铺开 | 先看要紧的，MAC、BSSID 等点「详情」再看 |
+| 用词 | 2g / 5g、DHCP 租约 | 2.4 GHz / 5 GHz、在线设备 |
+| 找功能 | 一层层翻菜单 | <kbd>⌘K</kbd> 直接搜 |
+
+原有的功能一项不少，只是换了个更容易看懂的方式呈现。
 
 ## 关于名字
 
@@ -185,7 +200,7 @@ install.sh / uninstall.sh        安装 / 卸载脚本
 
 ## English
 
-**7Dollar** is a clean, card-based LuCI theme for OpenWrt 23.05+ (ucode LuCI), including apk-based 25.x. The name comes from its cost: **$7** in AI tokens.
+**7Dollar** is a LuCI theme for people who are not network engineers: it says what's happening (online or not, how fast, who's connected) instead of dumping every field, groups menus by task (Devices, Wi‑Fi, Internet, Security), and keeps the technical details one *Details* click away. Nothing from LuCI is removed. It is a clean, card-based theme for OpenWrt 23.05+ (ucode LuCI), including apk-based 25.x. The name comes from its cost: **$7** in AI tokens.
 
 - Home dashboard with connection status, live throughput, devices, Wi‑Fi and system health
 - Menus grouped by purpose, with <kbd>⌘K</kbd> search
