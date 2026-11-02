@@ -157,29 +157,45 @@ function arm(el) {
 	h.append(btn);
 }
 
-/* Open or close a section. The box eases to its new height while the details fade in, or fade out
- * before they go; tables (display:table cannot clip) just fade. Returns the new state. */
+/* Open or close a section. Opening: the box eases to its new height while the details fade in.
+ * Closing mirrors it: the details fade out first, then the box settles, so nothing jumps at the end.
+ * Returns the new state. */
 function flip(sec) {
 	sec._end?.();
 	const open = !sec.classList.contains('td-open'), ms = td.motion('base');
 	if (!ms) return sec.classList.toggle('td-open', open);
 
-	const box = getComputedStyle(sec).display != 'table', from = sec.offsetHeight;
-	sec.classList.toggle('td-open', open);
-	const to = sec.offsetHeight;
-	sec.classList.add('td-open', open ? 'td-opening' : 'td-closing');
-
-	const anim = box ? sec.animate({ height: [ `${from}px`, `${to}px` ] }, { duration: ms, fill: 'forwards', easing: getComputedStyle(sec).getPropertyValue('--ease').trim() }) : null;
-	if (anim) sec.style.overflow = 'hidden';
+	let timer, anim;
 	const end = sec._end = () => {
 		sec._end = null;
 		clearTimeout(timer);
 		anim?.cancel();
 		sec.style.overflow = '';
-		sec.classList.remove('td-opening', 'td-closing');
+		sec.classList.remove('td-showing', 'td-hiding');
 		sec.classList.toggle('td-open', open);
 	};
-	const timer = setTimeout(end, ms);
+	/* Cells that stay, and whatever sits below the tables, glide from where they were instead of jumping
+	 * when the lines and columns around them come or go. A cell is anchored where its content sits:
+	 * left, and middle in a table row or top when stacked on phones. */
+	const settle = () => {
+		const easing = getComputedStyle(sec).getPropertyValue('--ease').trim(), from = sec.offsetHeight;
+		const rows = [ ...sec.querySelectorAll('.th,.td'), ...[ ...sec.children ].filter(c => !c.querySelector('.td')) ];
+		const at = r => { const b = r.getBoundingClientRect(); return b.height ? [ b.left, b.top + (getComputedStyle(r).display == 'table-cell' ? b.height / 2 : 0) ] : null };
+		const was = rows.map(at);
+		sec.classList.remove('td-hiding');
+		sec.classList.toggle('td-open', open);
+		sec.classList.add('td-showing');
+		anim = sec.animate({ height: [ `${from}px`, `${sec.offsetHeight}px` ] }, { duration: ms, fill: 'forwards', easing });
+		if (getComputedStyle(sec).display != 'table') sec.style.overflow = 'hidden';   // a table only ever shrinks: its rows ease shorter
+		rows.forEach((r, i) => {
+			const now = at(r), dx = was[i] && now && was[i][0] - now[0], dy = was[i] && now && was[i][1] - now[1];
+			if (Math.abs(dx) + Math.abs(dy) > 1) r.animate({ transform: [ `translate(${dx}px,${dy}px)`, 'none' ] }, { duration: ms, easing });
+		});
+		timer = setTimeout(end, ms);
+	};
+
+	if (open) settle();
+	else { sec.classList.add('td-hiding'); timer = setTimeout(settle, td.motion('fast')); }
 	return open;
 }
 

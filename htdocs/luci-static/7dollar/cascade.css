@@ -522,9 +522,9 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-detail:hover{background:var(--surface-2);color:var(--ink)}
 .td-detail .i{width:14px;height:14px;transform:rotate(90deg);transition:transform var(--base) var(--ease)}
 .td-detail[aria-expanded=true] .i{transform:rotate(-90deg)}
-/* while tidy.js eases the section height, revealed details fade in and leaving ones fade out */
-.td-opening .td-x{animation:td-fade var(--base) var(--ease) both}
-.td-closing .td-x{animation:td-out var(--fast) var(--ease) both}
+/* tidy.js: details fade out before the section shrinks; whatever appears as it resizes fades in */
+.td-showing :is(.td-x,.td-y){animation:td-fade var(--base) var(--ease) both}
+.td-hiding .td-x{animation:td-out var(--fast) var(--ease) both}
 
 /* native LuCI icons (<img src=".../resources/icons/*.svg">): hide the bitmap, paint a palette-tinted line icon */
 @supports (mask-size:contain) or (-webkit-mask-size:contain){
