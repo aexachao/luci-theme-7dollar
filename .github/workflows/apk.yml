@@ -1,5 +1,6 @@
 # Builds the OpenWrt 25.x (.apk) package inside an official OpenWrt 25.12 image,
-# installs and removes it on a clean one, then commits it to dist/.
+# installs and removes it on a clean one, commits it to dist/, and publishes a
+# GitHub Release with the ipk and apk the first time a version reaches main.
 name: apk
 on:
   push:
@@ -14,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - name: Build
         run: |
           curl -fsSL https://dl-cdn.alpinelinux.org/alpine/v3.23/main/x86_64/apk-tools-static-3.0.8-r0.apk | tar -xz sbin/apk.static
@@ -53,3 +55,14 @@ jobs:
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -m "dist: $(cat dist/latest-apk.txt)"
           git push
+      - name: Release
+        if: github.ref == 'refs/heads/main'
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          v=$(sed -n 's/^PKG_VERSION:=//p' Makefile)
+          gh release view "v$v" >/dev/null 2>&1 && exit 0
+          ipk=dist/$(cat dist/latest.txt) apk=dist/$(cat dist/latest-apk.txt)
+          case "$ipk $apk" in *"_$v-"*"-$v-"*) ;; *) echo "dist/ is not $v yet"; exit 0 ;; esac
+          { git log -1 --format=%s -S"PKG_VERSION:=$v" -- Makefile | sed "s/^$v: //"; echo
+            echo "23.05 / 24.10 用 ipk，25.x 用 apk。安装方法见 [README](https://github.com/$GITHUB_REPOSITORY#安装)。"; } > notes.md
+          gh release create "v$v" "$ipk" "$apk" --title "7Dollar $v" --notes-file notes.md --target "$(git rev-parse HEAD)"

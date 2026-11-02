@@ -64,7 +64,7 @@
 
 适用于 23.05 / 24.10。25.x 请用方法二。
 
-1. 下载安装包：[luci-theme-7dollar_1.0.6-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.6-r1_all.ipk)
+1. 下载安装包：[luci-theme-7dollar_1.0.6-r1_all.ipk](https://github.com/itsmaiGe/luci-theme-7dollar/raw/main/dist/luci-theme-7dollar_1.0.6-r1_all.ipk)（历史版本见 [Releases](https://github.com/itsmaiGe/luci-theme-7dollar/releases)）
 2. 浏览器打开路由器后台（通常是 `192.168.1.1`），输入密码登录
 3. 点 **系统 → 软件包 → 上传软件包…**，选择刚下载的文件，点 **上传**，再点 **安装**
 4. 刷新页面（Windows 按 <kbd>F5</kbd>，Mac 按 <kbd>⌘ R</kbd>）
