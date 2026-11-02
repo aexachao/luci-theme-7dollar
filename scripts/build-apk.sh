@@ -8,6 +8,9 @@ cd "$(dirname "$0")/.."
 NAME=luci-theme-7dollar
 VER=$(sed -n 's/^PKG_VERSION:=//p' Makefile)-r$(sed -n 's/^PKG_RELEASE:=//p' Makefile)
 OUT=dist/$NAME-$VER.apk
+# Stamp files with the last commit that touched the package, so rebuilding unchanged sources
+# gives a byte-identical apk (CI then has nothing to commit).
+export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(git -c safe.directory="$PWD" log -1 --format=%ct -- Makefile htdocs ucode root scripts/stage.sh scripts/build-apk.sh)}
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
@@ -55,6 +58,7 @@ cat > "$S/post-deinstall" <<'SH'
 exit 0
 SH
 chmod 755 "$S"/*
+find "$D" "$S" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
 
 mkdir -p dist
 rm -f dist/$NAME-*.apk
