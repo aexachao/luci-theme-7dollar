@@ -19,7 +19,6 @@
 	<svg class="arcs" viewBox="0 0 600 600" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><circle cx="600" cy="600" r="160"/><circle cx="600" cy="600" r="250"/><circle cx="600" cy="600" r="340"/><circle cx="600" cy="600" r="430"/><circle cx="600" cy="600" r="520"/></svg>
 
 	<form class="td-lbox" method="post" id="td-login">
-		<svg class="mark" width="64" height="64" aria-hidden="true"><use href="{{ sprite }}#mark"></use></svg>
 		<h1 class="td-serif">{{ T('欢迎回来', 'Welcome back') }}</h1>
 		<p class="td-sub">{{ striptags(board.hostname ?? 'OpenWrt') }} · {{ striptags(board.model ?? '') }}</p>
 
