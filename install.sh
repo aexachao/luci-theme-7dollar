@@ -29,8 +29,11 @@ say "7Dollar 主题安装中…"
 if command -v opkg >/dev/null 2>&1; then LIST=latest.txt; else LIST=latest-apk.txt; fi
 get "$RAW/dist/$LIST" "$TMP/latest" || die "下载失败，请检查网络，或设置 PROXY 后重试"
 PKG=$(head -n1 "$TMP/latest" | tr -d '\r\n ')
+VER=$(echo "$PKG" | sed -n 's/^luci-theme-7dollar[_-]\([0-9.]*\)-r.*/\1/p')
 say "下载 $PKG"
-get "$RAW/dist/$PKG" "$TMP/$PKG" || die "下载失败，请检查网络，或设置 PROXY 后重试"
+# from the Release (counted as a download on GitHub); the copy in the repo is the fallback
+get "${P}https://github.com/$REPO/releases/download/v$VER/$PKG" "$TMP/$PKG" || get "$RAW/dist/$PKG" "$TMP/$PKG" \
+	|| die "下载失败，请检查网络，或设置 PROXY 后重试"
 if [ "$LIST" = latest.txt ]; then
 	opkg install --force-reinstall "$TMP/$PKG" || die "opkg 安装失败"
 else
