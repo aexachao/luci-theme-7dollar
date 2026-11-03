@@ -769,6 +769,16 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
+/* secondary dial-ups (IPTV, backup WAN) and IPv6 companions, one line each */
+.td-uplinks{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.td-uplinks:empty{display:none}
+.td-uplink{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--ink-2)}
+.td-uplink .td-dot{background:var(--ok)}
+.td-uplink.off .td-dot{background:var(--bad)}
+.td-uplink b{font-weight:500;color:var(--ink);white-space:nowrap}
+.td-uplink.off b{color:var(--ink-3)}
+.td-uplink small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-3)}
+.td-uplink .addr{margin-left:auto;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:12px;color:var(--ink-2)}
 
 /* rate */
 .k-rate{display:flex;flex-direction:column}
