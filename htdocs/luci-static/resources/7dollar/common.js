@@ -500,7 +500,8 @@ function wan() {
 			          && dev(i) != dev(primary || {}))
 			.filter(routed)
 			.map(i => ({ name: i.interface, proto: i.proto, device: i.device, port: i.l3_device, up: !!i.up,
-			             ip: ((i['ipv4-address'] || [])[0] || {}).address, ip6: v6(i), uptime: i.uptime }));
+			             ip: ((i['ipv4-address'] || [])[0] || {}).address, ip6: v6(i), dns: i['dns-server'] || [],
+			             uptime: i.uptime }));
 		const companion6 = x => v6(list.find(j => j !== x && dev(j) == dev(x) && v6(j)) || {});
 
 		if (!def) {

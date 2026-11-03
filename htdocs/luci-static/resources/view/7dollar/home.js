@@ -144,11 +144,13 @@ return view.extend({
 				<section class="td-card k-conn" data-card="conn">
 					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip"></span></div>
 					<div class="td-topo">${topo}</div>
-					<dl class="td-facts" id="td-facts">
-						<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd><dd class="td-fact-sub" id="td-wanip6" hidden></dd></div>
-						<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
-						<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
-					</dl>
+					<div class="td-facts" id="td-facts">
+						<dl class="td-fact-row">
+							<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd><dd class="td-fact-sub" id="td-wanip6" hidden></dd></div>
+							<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
+							<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
+						</dl>
+					</div>
 				</section>
 
 				${rateCard}
@@ -236,7 +238,8 @@ return view.extend({
 		this.paintTags();
 	},
 
-	/* Secondary dial-ups (IPTV, backup WAN) sit in the facts grid; the IPv6 address belongs to the WAN. */
+	/* Secondary dial-ups (IPTV, backup WAN) get a facts row of their own, with the same fields as
+	 * the WAN row. The IPv6 address belongs to the WAN, not to an uplink. */
 	paintUplinks() {
 		const facts = this.$('td-facts');
 		if (!facts) return;
@@ -244,10 +247,15 @@ return view.extend({
 		const html = list.map(u => {
 			const addr = u.ip || u.ip6 || T('未连接', 'Not connected');
 			const meta = [ PROTO[u.proto] || u.proto, u.device ].filter(Boolean).join(' · ');
-			return `<div class="td-fact-extra"><dt><span class="td-dot${u.up ? '' : ' bad'}"></span>${esc(u.name)}</dt><dd${u.up ? '' : ' class="td-muted"'}>${esc(addr)}</dd>${meta ? `<dd class="td-fact-sub">${esc(meta)}</dd>` : ''}</div>`;
+			const dns = (u.dns || []).join(' · ');
+			return `<dl class="td-fact-row td-fact-uplink">`
+				+ `<div><dt><span class="td-dot${u.up ? '' : ' bad'}"></span>${esc(u.name)} ${esc(T('地址', 'address'))}</dt><dd${u.up ? '' : ' class="td-muted"'}>${esc(addr)}</dd>${meta ? `<dd class="td-fact-sub">${esc(meta)}</dd>` : ''}</div>`
+				+ `<div><dt>DNS</dt><dd${dns ? '' : ' class="td-muted"'}>${esc(dns || '—')}</dd></div>`
+				+ `<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd>${u.uptime ? esc(td.duration(u.uptime)) : '—'}</dd></div>`
+				+ `</dl>`;
 		}).join('');
 		if (html != this.s.uplinks) {
-			facts.querySelectorAll('.td-fact-extra').forEach(n => n.remove());
+			facts.querySelectorAll('.td-fact-uplink').forEach(n => n.remove());
 			facts.insertAdjacentHTML('beforeend', html);
 			this.s.uplinks = html;
 		}

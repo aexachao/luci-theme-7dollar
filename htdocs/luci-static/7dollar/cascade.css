@@ -766,22 +766,20 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-link.down .ln{background:repeating-linear-gradient(90deg,var(--bad) 0 6px,transparent 6px 11px);opacity:.6}
 @keyframes td-flow{from{left:0;opacity:0}15%,85%{opacity:1}to{left:calc(100% - 8px);opacity:0}}
 @container (max-width:430px){.td-link .t{visibility:hidden}.td-node small{display:none}}
-.td-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
-/* Wide cards keep every fact at its own width and spend the leftover on the gaps, so the row
-   spans the card without stretching short values. DNS wraps instead of squeezing its
-   neighbours, and each fact keeps a readable minimum. */
+.td-facts{display:flex;flex-direction:column;gap:16px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
+.td-fact-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 12px;margin:0}
+/* Wide cards give both rows the same three columns (address / DNS / connected), so the WAN and
+   the IPTV row line up and together span the card without squeezing each other. */
 @container (min-width:600px){
-	.td-facts{display:flex;justify-content:space-between;align-items:flex-start;column-gap:16px}
-	.td-facts>div{flex:0 0 auto;min-width:64px}
-	.td-facts>div:first-child{flex:1 1 150px;max-width:244px}
-	.td-facts>div:nth-child(2){max-width:112px}
+	.td-facts{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) minmax(0,1fr);column-gap:24px;row-gap:16px}
+	.td-fact-row{display:contents}
 }
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
-/* secondary dial-ups as ordinary facts; IPv6 folds under the WAN address */
-.td-fact-extra dt{display:flex;align-items:center;gap:6px}
-.td-fact-extra .td-dot{background:var(--ok)}
-.td-fact-extra .td-dot.bad{background:var(--bad)}
+/* secondary dial-ups as their own facts row; IPv6 folds under the WAN address */
+.td-fact-uplink dt{display:flex;align-items:center;gap:6px}
+.td-fact-uplink .td-dot{background:var(--ok)}
+.td-fact-uplink .td-dot.bad{background:var(--bad)}
 .td-facts .td-fact-sub{font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* rate */
@@ -791,7 +789,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-rate small i{width:8px;height:8px;border-radius:3px;background:var(--accent)}
 .td-rate.up small i{background:var(--second)}
 .td-rate.boot{margin-left:auto;text-align:right}.td-rate.boot small{justify-content:flex-end}.td-rate.boot span{font-size:14px;color:var(--ink-2);white-space:pre}
-.td-chart{display:block;margin:auto -24px -22px;padding-top:18px;width:calc(100% + 48px);height:136px;flex:none}
+.td-chart{display:block;margin:0 -24px -22px;padding-top:18px;width:calc(100% + 48px);min-height:136px;flex:1 1 136px}
 
 /* device rows */
 .td-dev{display:flex;align-items:center;gap:13px;padding:10px 0;border-top:1px solid var(--line-soft);min-width:0}
