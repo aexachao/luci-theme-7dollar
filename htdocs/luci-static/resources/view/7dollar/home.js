@@ -150,8 +150,6 @@ return view.extend({
 								<div><dt class="td-fact-state"><span class="td-dot" id="td-wan-dot"></span>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
 							</dl>
 						</div>
-						<button type="button" class="td-facts-pg prev" id="td-fg-prev" aria-label="${esc(T('上一项', 'Previous'))}" hidden>${icon('chev')}</button>
-						<button type="button" class="td-facts-pg next" id="td-fg-next" aria-label="${esc(T('下一项', 'Next'))}" hidden>${icon('chev')}</button>
 						<div class="td-facts-dots" id="td-facts-dots" hidden></div>
 					</div>
 				</section>
@@ -163,8 +161,6 @@ return view.extend({
 		this.root = root;
 		this.$ = id => root.querySelector('#' + id);
 
-		this.$('td-fg-prev').addEventListener('click', () => this.setPage(this.s.page - 1));
-		this.$('td-fg-next').addEventListener('click', () => this.setPage(this.s.page + 1));
 		this.$('td-facts-dots').addEventListener('click', ev => {
 			const b = ev.target.closest('button');
 			if (b) this.setPage(+b.dataset.i);
@@ -287,15 +283,12 @@ return view.extend({
 		}
 	},
 
-	/* Arrows and dots only exist with more than one page; one page reads as a plain facts row. */
+	/* Dots only exist with more than one page; one page reads as a plain facts row. */
 	syncFacts() {
 		const view = this.$('td-facts-view'), dots = this.$('td-facts-dots');
-		const prev = this.$('td-fg-prev'), next = this.$('td-fg-next');
 		if (!view) return;
 		const labels = [ T('宽带', 'Broadband') ].concat(((this.s.wan && this.s.wan.uplinks) || []).map(u => u.name));
 		const n = view.children.length;
-		if (prev) prev.hidden = n < 2;
-		if (next) next.hidden = n < 2;
 		if (dots) {
 			dots.hidden = n < 2;
 			dots.innerHTML = n > 1
@@ -307,13 +300,10 @@ return view.extend({
 
 	setPage(i) {
 		const view = this.$('td-facts-view'), dots = this.$('td-facts-dots');
-		const prev = this.$('td-fg-prev'), next = this.$('td-fg-next');
 		if (!view) return;
 		const n = view.children.length;
 		this.s.page = Math.max(0, Math.min(i, n - 1));
 		view.style.transform = `translateX(-${this.s.page * 100}%)`;
-		if (prev) prev.disabled = this.s.page <= 0;
-		if (next) next.disabled = this.s.page >= n - 1;
 		if (dots) [ ...dots.children ].forEach((d, k) => d.classList.toggle('on', k == this.s.page));
 	},
 
