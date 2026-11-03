@@ -127,6 +127,14 @@ function scan(view) {
 		mark(s);
 	});
 
+	/* long section help (DHCP, firewall, ...) folds behind "说明" instead of a wall of text above the form */
+	view.querySelectorAll('.cbi-section-descr').forEach(d => {
+		if (d.parentNode.matches('details') || d.textContent.trim().length <= 160) return;
+		const box = E('details', { class: 'td-desc' }, E('summary', {}, [ T('说明', 'Help'), td.html(icon('chev')) ]));
+		d.replaceWith(box);
+		box.append(d);
+	});
+
 	out.forEach(arm);
 }
 

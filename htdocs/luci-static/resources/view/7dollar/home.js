@@ -44,7 +44,7 @@ return view.extend({
 		this.s = {
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
 			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi || { radios: {}, aps: [] }, info: info, board: board,
-			clients: [], ping: null, oc: showOC, hasWifi: !!wifi, mode: mode
+			clients: [], ping: null, oc: showOC, hasWifi: !!(wifi && Object.keys(wifi.radios).length), mode: mode
 		};
 
 		const fwd = Object.values(fw || {})[0] || {};

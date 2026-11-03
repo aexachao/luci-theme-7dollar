@@ -3,9 +3,15 @@
 'require poll';
 'require 7dollar.common as td';
 
-/* All devices: online (Wi-Fi + wired) and recently seen DHCP clients. */
+/* All devices: online (Wi-Fi + wired) and recently seen DHCP clients. The summary tiles filter the list. */
 
 const T = td.T, icon = td.icon, esc = td.esc;
+const VIEWS = [
+	[ 'on', T('在线', 'Online'), c => c.online ],
+	[ 'wifi', 'Wi‑Fi', c => c.online && c.conn == 'wifi' ],
+	[ 'wired', T('有线', 'Wired'), c => c.online && c.conn != 'wifi' ],
+	[ 'off', T('最近连接过', 'Recently seen'), c => !c.online ]
+];
 
 return view.extend({
 	load() {
@@ -24,12 +30,16 @@ return view.extend({
 				<p class="td-sub" id="td-dsum">&nbsp;</p>
 			</div>
 			<a class="btn" href="${L.url('admin/network/dhcp')}">${icon('lock')}${esc(T('给设备固定 IP', 'Reserve an IP'))}</a></div>
-			<div class="td-stats" id="td-dstats"></div>
-			<section class="td-card"><div class="td-card-h"><h3>${esc(T('在线', 'Online'))}</h3></div><div class="td-devlist" id="td-on"></div></section>
-			<section class="td-card" style="margin-top:18px" id="td-off-card"><div class="td-card-h"><h3>${esc(T('最近连接过', 'Recently seen'))}</h3><span class="td-muted">${esc(T('有 IP 租约，当前离线', 'Leased, currently offline'))}</span></div><div class="td-devlist" id="td-off"></div></section>
+			<div class="td-stats" id="td-dstats">${VIEWS.map(([ k, n ]) => `<button type="button" class="td-stat" data-v="${k}"><small>${esc(n)}</small><b>0</b></button>`).join('')}</div>
+			<section class="td-card"><div class="td-devlist" id="td-dlist"></div></section>
 		</div>`);
 
 		this.root = root;
+		this.view = 'on';
+		root.querySelector('#td-dstats').addEventListener('click', ev => {
+			const b = ev.target.closest('[data-v]');
+			if (b) { this.view = b.dataset.v; this.paint(this.list); }
+		});
 		this.paint(list);
 		poll.add(() => td.clients().then(l => this.paint(l)), 5);
 		return root;
@@ -54,21 +64,22 @@ return view.extend({
 	},
 
 	paint(list) {
-		const on = list.filter(c => c.online), off = list.filter(c => !c.online);
-		const wifi = on.filter(c => c.conn == 'wifi').length;
+		this.list = list;
+		const on = list.filter(c => c.online);
 		const $ = id => this.root.querySelector('#' + id);
 
 		$('td-dsum').textContent = on.length
 			? T(`现在有 ${on.length} 台设备在线。名字来自设备自己上报的主机名。`, `${on.length} device${on.length == 1 ? '' : 's'} online right now.`)
 			: T('现在没有设备在线。', 'No devices online right now.');
 
-		$('td-dstats').innerHTML = [
-			[ T('在线', 'Online'), on.length ], [ 'Wi‑Fi', wifi ], [ T('有线', 'Wired'), on.length - wifi ], [ T('最近连接过', 'Recently seen'), off.length ]
-		].map(([ k, v ]) => `<div class="td-stat"><small>${esc(k)}</small><b>${v}</b></div>`).join('');
-
-		$('td-on').innerHTML = on.length ? on.map(c => this.row(c)).join('') : `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`;
-		$('td-off').innerHTML = off.map(c => this.row(c)).join('');
-		$('td-off-card').hidden = !off.length;
+		let rows = [];
+		VIEWS.forEach(([ k, , match ]) => {
+			const b = $('td-dstats').querySelector(`[data-v="${k}"]`), sel = list.filter(match);
+			b.lastChild.textContent = sel.length;
+			b.setAttribute('aria-pressed', k == this.view);
+			if (k == this.view) rows = sel;
+		});
+		$('td-dlist').innerHTML = rows.length ? rows.map(c => this.row(c)).join('') : `<div class="td-empty-row">${esc(T('这里暂时没有设备', 'No devices here'))}</div>`;
 	},
 
 	handleSave: null,
