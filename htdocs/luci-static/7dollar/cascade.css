@@ -330,7 +330,7 @@ fieldset{min-width:0}
 .table.cbi-section-table .th,.table.cbi-section-table .td{padding-left:8px;padding-right:8px}
 .table.cbi-section-table input[type=password],.table.cbi-section-table input[type=text],.table.cbi-section-table textarea,.table.cbi-section-table select,.table.cbi-section-table .cbi-select{width:100%;min-width:64px}
 /* action buttons keep to one row while there is room and wrap instead of pushing out of the card */
-.td.cbi-section-actions{text-align:right;white-space:normal}
+:is(.th,.td).cbi-section-actions{text-align:right;white-space:normal}
 .td.cbi-section-actions>*{display:inline-flex;justify-content:flex-end;align-items:center;gap:6px;white-space:nowrap}
 .td.cbi-section-actions>*>form{display:inline-flex;gap:6px;margin:0}
 .td.cbi-section-actions .cbi-button{min-height:32px;padding:0 12px;font-size:13px}
