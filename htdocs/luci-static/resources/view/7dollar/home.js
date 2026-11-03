@@ -14,6 +14,7 @@
 const T = td.T, icon = td.icon, esc = td.esc;
 const N = 60;
 const RING = 2 * Math.PI * 24;
+const PROTO = { dhcp: T('自动获取', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE'), static: T('静态地址', 'Static'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular'), ncm: T('移动网络', 'Cellular'), modemmanager: T('移动网络', 'Cellular') };
 
 return view.extend({
 	load() {
@@ -142,11 +143,11 @@ return view.extend({
 				<section class="td-card k-conn" data-card="conn">
 					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip"></span></div>
 					<div class="td-topo">${topo}</div>
-					<dl class="td-facts">
+					<dl class="td-facts" id="td-facts">
 						<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd></div>
 						<div><dt>${esc(T('网关延迟', 'Gateway latency'))}</dt><dd id="td-ping">—</dd></div>
 						<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
-						<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
+						<div><dt class="td-fact-state"><span class="td-dot" id="td-wan-dot"></span>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
 					</dl>
 				</section>
 
@@ -166,6 +167,7 @@ return view.extend({
 		this.sample(dev, info);
 		this.refreshClients();
 		this.pingGateway();
+		this.pingUplinks();
 
 		poll.add(L.bind(this.tick, this), 2);
 		poll.add(L.bind(this.slow, this), 10);
@@ -202,7 +204,6 @@ return view.extend({
 
 	paintStatic() {
 		const w = this.s.wan;
-		const PROTO = { dhcp: T('自动获取', 'DHCP'), pppoe: T('宽带拨号', 'PPPoE'), static: T('静态地址', 'Static'), dhcpv6: 'DHCPv6', qmi: T('移动网络', 'Cellular'), ncm: T('移动网络', 'Cellular'), modemmanager: T('移动网络', 'Cellular') };
 		const bands = [...new Set((this.s.wifi.aps || []).filter(a => a.up && a.stations.length).map(a => td.bandName(a.band)))];
 
 		this.set('td-lan-t', this.s.mode == 'side' ? T('局域网', 'LAN') : bands.length ? 'Wi‑Fi ' + bands.join(' / ') : T('有线', 'Wired'));
@@ -210,14 +211,18 @@ return view.extend({
 		const ok = !!(w && w.up), chip = this.$('td-conn-chip');
 		this.$('td-up-node').classList.toggle('bad', !ok);
 		this.$('td-link-up').classList.toggle('down', !ok);
+		this.$('td-wan-dot').classList.toggle('bad', !ok);
 		if (chip.dataset.ok != String(ok)) {
 			chip.dataset.ok = ok;
 			chip.className = ok ? 'td-chip' : 'td-chip bad';
 			chip.innerHTML = ok ? `<span class="td-dot live"></span>${esc(T('畅通', 'Online'))}` : `<span class="td-dot"></span>${esc(T('未连接', 'Offline'))}`;
 		}
 
+		this.paintUplinks();
+
 		if (!ok) {
 			this.set('td-proto', T('没有连接', 'Not connected'));
+			this.set('td-wanup', '—');
 			return;
 		}
 
@@ -227,6 +232,31 @@ return view.extend({
 		this.set('td-wanup', w.uptime ? td.duration(w.uptime) : '—');
 
 		this.paintTags();
+	},
+
+	/* A second default route (IPTV, backup WAN) is another uplink and gets the same four facts.
+	 * They flow into the next row of the grid, so a box with one uplink looks exactly as before. */
+	paintUplinks() {
+		const facts = this.$('td-facts');
+		if (!facts) return;
+		const list = (this.s.wan && this.s.wan.uplinks) || [];
+		const cell = inner => `<div class="td-fact-up">${inner}</div>`;
+		const html = list.map(u => {
+			const addr = u.ip || u.ip6 || T('未连接', 'Not connected');
+			const proto = PROTO[u.proto] || u.proto;
+			const dns = (u.dns || []).join(', ');
+			const label = `${esc(u.name)}${esc(T('地址', ' address'))}${proto ? ` · ${esc(proto)}` : ''}`;
+			const pingId = 'td-ping-' + u.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+			return cell(`<dt>${label}</dt><dd${u.up ? '' : ' class="td-muted"'}>${esc(addr)}</dd>`)
+				+ cell(`<dt>${esc(T('网关延迟', 'Gateway latency'))}</dt><dd id="${pingId}">—</dd>`)
+				+ cell(`<dt>DNS</dt><dd${dns ? '' : ' class="td-muted"'}>${esc(dns || '—')}</dd>`)
+				+ cell(`<dt class="td-fact-state"><span class="td-dot${u.up ? '' : ' bad'}"></span>${esc(T('已连接', 'Connected for'))}</dt><dd>${u.uptime ? esc(td.duration(u.uptime)) : '—'}</dd>`);
+		}).join('');
+		if (html != this.s.uplinks) {
+			facts.querySelectorAll('.td-fact-up').forEach(n => n.remove());
+			facts.insertAdjacentHTML('beforeend', html);
+			this.s.uplinks = html;
+		}
 	},
 
 	paintTags() {
@@ -277,12 +307,12 @@ return view.extend({
 		if (!box) return Promise.resolve();
 		return td.ports(this.s.wan).then(list => {
 			if (!list.length) return box.closest('.td-card').remove();   // nothing the kernel can tell us (swconfig)
-			const lan = list.filter(p => !p.wan);
+			const lan = list.filter(p => p.role == 'LAN');
 			let k = 0;
 			this.set('td-ports-n', T(`${list.filter(p => p.up).length} / ${list.length} 已接网线`, `${list.filter(p => p.up).length} of ${list.length} in use`));
 			box.innerHTML = list.map(p => {
 				const m = /^lan(\d+)$/.exec(p.name);
-				const name = p.wan ? 'WAN' : m ? 'LAN ' + m[1] : lan.length > 1 ? 'LAN ' + ++k : 'LAN';
+				const name = p.role != 'LAN' ? p.role : m ? 'LAN ' + m[1] : lan.length > 1 ? 'LAN ' + ++k : 'LAN';
 				const speed = !p.up ? T('未接网线', 'Unplugged') : p.speed > 0 ? (p.speed >= 1000 ? p.speed / 1000 + ' Gbps' : p.speed + ' Mbps') : T('已连接', 'Connected');
 				return `<div${p.up ? '' : ' class="off"'}><dt>${esc(name)}</dt><dd>${esc(speed)}</dd></div>`;
 			}).join('');
@@ -439,7 +469,15 @@ return view.extend({
 			this.paintStatic();
 			this.paintDisk();
 			this.pingGateway();
+			this.pingUplinks();
 			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : this.refreshPorts() ]);
+		});
+	},
+
+	ping(gw) {
+		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', gw ]), {}).then(r => {
+			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
+			return m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
 		});
 	},
 
@@ -451,13 +489,30 @@ return view.extend({
 		}
 		/* a gateway that never answers ping (many ISP modems) is retried once a minute, not every 10 s */
 		if (this.s.miss >= 3 && this.ticks % 6) return Promise.resolve();
-		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', w.gw ]), {}).then(r => {
-			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
-			const v = m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
+		return this.ping(w.gw).then(v => {
 			this.s.miss = v ? 0 : (this.s.miss || 0) + 1;
 			this.set('td-ping', v || T('无响应', 'No reply'));
 			this.set('td-lat', v ? T('延迟 ', 'Latency ') + v : T('已连接', 'Connected'));
 		});
+	},
+
+	/* every uplink pings its own gateway, so each row reads the same way */
+	pingUplinks() {
+		const list = (this.s.wan && this.s.wan.uplinks) || [];
+		this.s.missU = this.s.missU || {};
+		return Promise.all(list.map(u => {
+			const id = 'td-ping-' + u.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+			if (!u.gw || !/^[0-9.]+$/.test(u.gw)) {
+				this.set(id, '—');
+				return Promise.resolve();
+			}
+			const miss = this.s.missU[u.name] || 0;
+			if (miss >= 3 && this.ticks % 6) return Promise.resolve();
+			return this.ping(u.gw).then(v => {
+				this.s.missU[u.name] = v ? 0 : miss + 1;
+				this.set(id, v || T('无响应', 'No reply'));
+			});
+		}));
 	},
 
 	/* ---------- optional OpenClash card: one procd + one uci read, no polling ---------- */

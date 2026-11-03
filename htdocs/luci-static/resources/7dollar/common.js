@@ -495,16 +495,30 @@ function defaultRoute(text) {
 
 function wan() {
 	return Promise.all([ L.resolveDefault(callIfDump(), []), readFile('/proc/net/route') ]).then(([ ifs, rt ]) => {
+		const list = ifs || [];
 		const def = defaultRoute(rt);
 		const dev = i => i.l3_device || i.device;
-		const lan = (ifs || []).find(i => i.interface == 'lan');
+		const lan = list.find(i => i.interface == 'lan');
+		const v6 = i => ((i['ipv6-address'] || []).filter(a => !/^fe80:/i.test(a.address))[0] || {}).address;
+		const routed = i => (i.route || []).some(r => r.target == '0.0.0.0' || r.target == '::');
+		const gw4 = i => ((i.route || []).find(r => r.target == '0.0.0.0' && /^[0-9.]+$/.test(r.nexthop || '')) || {}).nexthop || null;
+		/* A second default route (IPTV, backup WAN) is another uplink. The DHCPv6 interface
+		 * behind a PPPoE WAN is not: its global address belongs to the main uplink. */
+		const uplinks = primary => list
+			.filter(i => i.interface != 'lan' && i.interface != 'loopback' && i.interface != (primary || {}).interface
+			          && dev(i) != dev(primary || {}))
+			.filter(routed)
+			.map(i => ({ name: i.interface, proto: i.proto, device: i.device, port: i.l3_device, up: !!i.up,
+			             ip: ((i['ipv4-address'] || [])[0] || {}).address, ip6: v6(i), dns: i['dns-server'] || [],
+			             gw: gw4(i), uptime: i.uptime }));
+		const companion6 = x => v6(list.find(j => j !== x && dev(j) == dev(x) && v6(j)) || {});
 
 		if (!def) {
-			const w = (ifs || []).find(i => i.interface == 'wan');
-			return w ? { up: false, mode: 'wan', proto: w.proto, device: dev(w) } : null;
+			const w = list.find(i => i.interface == 'wan');
+			return w ? { up: false, mode: 'wan', proto: w.proto, device: dev(w), uplinks: uplinks(w) } : null;
 		}
 
-		const i = (ifs || []).filter(i => i.up && dev(i) == def.dev)
+		const i = list.filter(i => i.up && dev(i) == def.dev)
 			.sort((a, b) => !!(b['ipv4-address'] || []).length - !!(a['ipv4-address'] || []).length)[0] || {};
 
 		return {
@@ -515,25 +529,35 @@ function wan() {
 			device: def.dev,
 			port: i.device,
 			ip: ((i['ipv4-address'] || [])[0] || {}).address,
-			ip6: ((i['ipv6-address'] || [])[0] || {}).address,
+			ip6: v6(i) || companion6(i),
 			gw: def.gw != '0.0.0.0' ? def.gw : null,
 			dns: i['dns-server'] || [],
-			uptime: i.uptime
+			uptime: i.uptime,
+			uplinks: uplinks(i)
 		};
 	});
 }
 
-/* Physical Ethernet ports in use: the uplink port and whatever sits in a bridge (lan1…lan4, eth1, …).
- * Switch ports are "dsa" devices, a plain NIC is "ethernet". A VLAN on top (eth0.7, wan.10) counts
- * as its port. Empty on swconfig boxes, where the kernel only sees the CPU port. */
+/* Physical Ethernet ports in use: bridge members plus the port of every uplink (WAN, IPTV,
+ * backup WAN), each tagged with the interface that owns it. Switch ports are "dsa" devices, a
+ * plain NIC is "ethernet"; a VLAN on top (eth0.7, wan.10) counts as its port. Empty on swconfig
+ * boxes, where the kernel only sees the CPU port. */
 function ports(up) {
 	const base = n => String(n || '').split('.')[0];
-	const upPorts = up && up.mode != 'side' ? [ base(up.port), base(up.device) ] : [];
+	const roles = {}, rank = {};
+	const add = (n, role, r) => {
+		n = base(n);
+		if (n && !(n in roles)) { roles[n] = role; rank[n] = r; }
+	};
+	if (up && up.mode != 'side') { add(up.device, 'WAN', 0); add(up.port, 'WAN', 0); }
+	((up && up.uplinks) || []).forEach((u, i) => { add(u.device, u.name, i + 1); add(u.port, u.name, i + 1); });
 	return L.resolveDefault(callDevices(), {}).then(devs => Object.values(devs || {})
 		.filter(d => /^(ethernet|dsa)$/.test(d.devtype) && !d.wireless && d.name.indexOf('.') < 0 && !/^(docker|veth|br-)/.test(d.name)
-		          && (d.master || upPorts.includes(d.name)))
-		.map(d => ({ name: d.name, wan: upPorts.includes(d.name), up: !!(d.link || {}).carrier, speed: +(d.link || {}).speed || 0 }))
-		.sort((a, b) => (b.wan - a.wan) || a.name.localeCompare(b.name, 'en', { numeric: true })));
+		          && (d.master || roles[d.name]))
+		.map(d => ({ name: d.name, role: roles[d.name] || 'LAN', wan: roles[d.name] == 'WAN',
+		             up: !!(d.link || {}).carrier, speed: +(d.link || {}).speed || 0 }))
+		.sort((a, b) => ((rank[a.name] != null ? rank[a.name] : 100) - (rank[b.name] != null ? rank[b.name] : 100))
+			|| a.name.localeCompare(b.name, 'en', { numeric: true })));
 }
 
 function connName(c) {
@@ -554,7 +578,7 @@ function dnsName(list, gw, gwName) {
 		const n = DNS_NAMES[ip] || (ip == gw ? gwName || T('上级路由', 'Upstream') : ip);
 		if (names.indexOf(n) < 0) names.push(n);
 	});
-	return names.slice(0, 2).join(' · ') || '—';
+	return names.slice(0, 2).join(', ') || '—';
 }
 
 function netdev(text) {

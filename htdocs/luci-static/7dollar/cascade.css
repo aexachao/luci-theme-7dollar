@@ -671,6 +671,15 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
+/* a second dial-up repeats the same four facts, so pin four columns once there is room for them;
+   auto-fit would otherwise place five columns and the second row would sit under the wrong labels */
+@container (min-width:582px){
+	.td-facts:has(.td-fact-up){grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+/* the link state dot sits with the connected label; green while up, red when down */
+.td-fact-state{display:flex;align-items:center;gap:6px}
+.td-fact-state .td-dot{background:var(--ok)}
+.td-fact-state .td-dot.bad{background:var(--bad)}
 
 /* rate */
 .k-rate{display:flex;flex-direction:column}
