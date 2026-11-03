@@ -48,7 +48,7 @@ return view.extend({
 		this.s = {
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
 			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi || { radios: {}, aps: [] }, info: info, board: board,
-			clients: [], ping: null, oc: showOC, hasWifi: hasWifi, mode: mode, page: 0
+			clients: [], ping: null, oc: showOC, hasWifi: hasWifi, mode: mode, page: 0, missU: {}
 		};
 
 		const fwd = Object.values(fw || {})[0] || {};
@@ -185,6 +185,7 @@ return view.extend({
 		this.sample(dev, info);
 		this.refreshClients();
 		this.pingGateway();
+		this.pingUplinks();
 
 		poll.add(L.bind(this.tick, this), 2);
 		poll.add(L.bind(this.slow, this), 10);
@@ -279,8 +280,10 @@ return view.extend({
 			const proto = PROTO[u.proto] || u.proto;
 			const dns = (u.dns || []).join(', ');
 			const label = `${esc(u.name)}${esc(T('地址', ' address'))}${proto ? ` · ${esc(proto)}` : ''}`;
+			const pingId = 'td-ping-' + u.name.replace(/[^a-zA-Z0-9_-]/g, '_');
 			return `<dl class="td-fact-row td-fact-page td-fact-uplink">`
 				+ `<div><dt>${label}</dt><dd${u.up ? '' : ' class="td-muted"'}>${esc(addr)}</dd></div>`
+				+ `<div><dt>${esc(T('网关延迟', 'Gateway latency'))}</dt><dd id="${pingId}">—</dd></div>`
 				+ `<div><dt>DNS</dt><dd${dns ? '' : ' class="td-muted"'}>${esc(dns || '—')}</dd></div>`
 				+ `<div><dt class="td-fact-state"><span class="td-dot${u.up ? '' : ' bad'}"></span>${esc(T('已连接', 'Connected for'))}</dt><dd>${u.uptime ? esc(td.duration(u.uptime)) : '—'}</dd></div>`
 				+ `</dl>`;
@@ -566,7 +569,15 @@ return view.extend({
 			this.layoutPair();
 			this.paintDisk();
 			this.pingGateway();
+			this.pingUplinks();
 			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : this.refreshPorts() ]);
+		});
+	},
+
+	ping(gw) {
+		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', gw ]), {}).then(r => {
+			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
+			return m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
 		});
 	},
 
@@ -578,13 +589,29 @@ return view.extend({
 		}
 		/* a gateway that never answers ping (many ISP modems) is retried once a minute, not every 10 s */
 		if (this.s.miss >= 3 && this.ticks % 6) return Promise.resolve();
-		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', w.gw ]), {}).then(r => {
-			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
-			const v = m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
+		return this.ping(w.gw).then(v => {
 			this.s.miss = v ? 0 : (this.s.miss || 0) + 1;
 			this.set('td-ping', v || T('无响应', 'No reply'));
 			this.set('td-lat', v ? T('延迟 ', 'Latency ') + v : T('已连接', 'Connected'));
 		});
+	},
+
+	/* each dial-up pings its own gateway, so every carousel page reads the same way */
+	pingUplinks() {
+		const list = (this.s.wan && this.s.wan.uplinks) || [];
+		return Promise.all(list.map(u => {
+			const id = 'td-ping-' + u.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+			if (!u.gw || !/^[0-9.]+$/.test(u.gw)) {
+				this.set(id, '—');
+				return Promise.resolve();
+			}
+			const miss = this.s.missU[u.name] || 0;
+			if (miss >= 3 && this.ticks % 6) return Promise.resolve();
+			return this.ping(u.gw).then(v => {
+				this.s.missU[u.name] = v ? 0 : miss + 1;
+				this.set(id, v || T('无响应', 'No reply'));
+			});
+		}));
 	},
 
 	/* ---------- optional OpenClash card: one procd + one uci read, no polling ---------- */
