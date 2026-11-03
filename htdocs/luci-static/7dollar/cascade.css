@@ -774,14 +774,9 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 @container (max-width:430px){.td-link .t{visibility:hidden}.td-node small{display:none}}
 .td-facts{margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft);overflow:hidden}
 .td-facts-view{display:flex;transition:transform var(--base) var(--ease)}
-.td-fact-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 12px;margin:0;flex:0 0 100%;min-width:0}
-/* every carousel page shares one four-column grid (address / latency / DNS / connected) so switching
-   pages keeps the columns in place; a dial-up page has no gateway latency, so its address spans that
-   slot too */
-@container (min-width:600px){
-	.td-fact-row{grid-template-columns:minmax(0,1.7fr) minmax(0,.55fr) minmax(0,1.85fr) minmax(0,1.3fr);column-gap:24px}
-	.td-fact-uplink>div:first-child{grid-column:span 2}
-}
+/* upstream's own fact grid: equal columns that fit, so a long DNS list wraps instead of
+   squeezing the gateway latency column */
+.td-fact-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:0;flex:0 0 100%;min-width:0}
 /* page switcher: small centered dots under the facts, only with 2+ pages ([hidden] otherwise) */
 .td-facts-dots{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px}
 .td-facts-dots[hidden]{display:none}
