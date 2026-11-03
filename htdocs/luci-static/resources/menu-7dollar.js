@@ -14,7 +14,7 @@
 const T = td.T, icon = td.icon, esc = td.esc;
 const mqPhone = window.matchMedia('(max-width:760px)');
 const MENU_CACHE_KEY = '7dollar-menu-version';
-const MENU_CACHE_VERSION = '1.0.10';
+const MENU_CACHE_VERSION = '1.1.0';
 
 return baseclass.extend({
 	__init__() {
