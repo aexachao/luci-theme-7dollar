@@ -63,6 +63,7 @@ abbr[title]{text-decoration:underline dotted;cursor:help}
 .nowrap{white-space:nowrap}
 .pull-right{float:right}.pull-left{float:left}
 svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.i.flip{transform:scaleX(-1)}
 .td-serif{font-family:var(--serif);font-weight:500;letter-spacing:-.01em}
 .td-muted{color:var(--ink-3)}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:var(--base);animation-timing-function:var(--ease)}
@@ -772,12 +773,21 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-link.down .ln{background:repeating-linear-gradient(90deg,var(--bad) 0 6px,transparent 6px 11px);opacity:.6}
 @keyframes td-flow{from{left:0;opacity:0}15%,85%{opacity:1}to{left:calc(100% - 8px);opacity:0}}
 @container (max-width:430px){.td-link .t{visibility:hidden}.td-node small{display:none}}
-.td-facts{margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft);overflow:hidden}
+.td-facts{margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
+.td-facts-swipe{position:relative}
+.td-facts-clip{overflow:hidden}
 .td-facts-view{display:flex;transition:transform var(--base) var(--ease)}
 /* upstream's own fact grid: equal columns that fit, so a long DNS list wraps instead of
    squeezing the gateway latency column */
 .td-fact-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:0;flex:0 0 100%;min-width:0}
-/* page switcher: small centered dots under the facts, only with 2+ pages ([hidden] otherwise) */
+/* page switcher: bare chevrons beside the facts, small centered dots under it, only with 2+ pages */
+.td-facts-pg{position:absolute;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:20px;height:20px;padding:0;border:0;background:none;color:var(--ink-3);cursor:pointer}
+.td-facts-pg:hover:not(:disabled){color:var(--accent)}
+.td-facts-pg:disabled{opacity:0;pointer-events:none}
+.td-facts-pg.prev{left:-20px}
+.td-facts-pg.next{right:-20px}
+.td-facts-pg svg{width:12px;height:12px}
+.td-facts-pg.prev svg{transform:rotate(180deg)}
 .td-facts-dots{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px}
 .td-facts-dots[hidden]{display:none}
 .td-facts-dot{width:5px;height:5px;border:0;padding:0;border-radius:99px;background:var(--line);cursor:pointer;transition:width var(--base) var(--ease),background var(--base) var(--ease)}
