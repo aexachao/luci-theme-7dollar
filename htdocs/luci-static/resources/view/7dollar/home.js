@@ -146,7 +146,6 @@ return view.extend({
 					<div class="td-topo">${topo}</div>
 					<dl class="td-facts" id="td-facts">
 						<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd><dd class="td-fact-sub" id="td-wanip6" hidden></dd></div>
-						<div><dt>${esc(T('网关延迟', 'Gateway latency'))}</dt><dd id="td-ping">—</dd></div>
 						<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
 						<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
 					</dl>
@@ -474,7 +473,6 @@ return view.extend({
 		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', w.gw ]), {}).then(r => {
 			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
 			const v = m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
-			this.set('td-ping', v || T('无响应', 'No reply'));
 			this.set('td-lat', v ? T('延迟 ', 'Latency ') + v : T('已连接', 'Connected'));
 		});
 	},

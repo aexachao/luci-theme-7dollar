@@ -767,12 +767,14 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 @keyframes td-flow{from{left:0;opacity:0}15%,85%{opacity:1}to{left:calc(100% - 8px);opacity:0}}
 @container (max-width:430px){.td-link .t{visibility:hidden}.td-node small{display:none}}
 .td-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
-/* Wide cards size each fact by its content and turn the remaining space into the gaps,
-   so a short value like latency stays narrow while the row still spans the whole card. */
+/* Wide cards keep every fact at its own width and spend the leftover on the gaps, so the row
+   spans the card without stretching short values. DNS wraps instead of squeezing its
+   neighbours, and each fact keeps a readable minimum. */
 @container (min-width:600px){
-	.td-facts{display:flex;justify-content:space-between;align-items:flex-start;column-gap:8px}
-	.td-facts>div{flex:0 0 auto;min-width:0}
-	.td-facts>div:first-child{flex:0 1 244px}
+	.td-facts{display:flex;justify-content:space-between;align-items:flex-start;column-gap:16px}
+	.td-facts>div{flex:0 0 auto;min-width:64px}
+	.td-facts>div:first-child{flex:1 1 150px;max-width:244px}
+	.td-facts>div:nth-child(2){max-width:112px}
 }
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
