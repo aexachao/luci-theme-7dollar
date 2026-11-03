@@ -9,7 +9,7 @@ const T = td.T, icon = td.icon, esc = td.esc;
 const VIEWS = [
 	[ 'on', T('在线', 'Online'), c => c.online ],
 	[ 'wifi', 'Wi‑Fi', c => c.online && c.conn == 'wifi' ],
-	[ 'wired', T('有线', 'Wired'), c => c.online && c.conn != 'wifi' ],
+	[ 'wired', T('有线', 'Wired'), c => c.online && c.conn != 'wifi', T('局域网', 'LAN') ],   // a side router sees the whole LAN here
 	[ 'off', T('最近连接过', 'Recently seen'), c => !c.online ]
 ];
 
@@ -58,7 +58,7 @@ return view.extend({
 			if (c.link) meta.unshift(`<span><b>${Math.round(c.link)} Mbps</b></span>`);
 			if (c.since) meta.push(`<span>${esc(T('已连接 ', 'Connected ') + td.duration(c.since))}</span>`);
 		}
-		else sub = T('有线连接', 'Wired');
+		else sub = td.connName(c);
 
 		return `<div class="td-dev"><div class="td-av">${icon(c.kind)}</div><div class="nm"><b>${esc(c.display)}</b><small>${esc(sub)}</small></div><div class="meta">${meta.join('')}</div></div>`;
 	},
@@ -73,8 +73,10 @@ return view.extend({
 			: T('现在没有设备在线。', 'No devices online right now.');
 
 		let rows = [];
-		VIEWS.forEach(([ k, , match ]) => {
+		const lan = list.some(c => c.conn == 'lan');
+		VIEWS.forEach(([ k, n, match, alt ]) => {
 			const b = $('td-dstats').querySelector(`[data-v="${k}"]`), sel = list.filter(match);
+			b.firstChild.textContent = lan && alt || n;
 			b.lastChild.textContent = sel.length;
 			b.setAttribute('aria-pressed', k == this.view);
 			if (k == this.view) rows = sel;

@@ -210,7 +210,8 @@ function flip(sec) {
 return baseclass.extend({
 	__init__() {
 		const view = document.getElementById('view');
-		if (!view) return;
+		/* the theme's own pages are already plain; the home page repaints every 2 s and need not be rescanned */
+		if (!view || /^admin-(home|clients|apps|system-appearance)$/.test(document.body.dataset.page || '')) return;
 		let queued = false;
 		const run = () => { queued = false; scan(view); };
 		new MutationObserver(() => queued || (queued = true, requestAnimationFrame(run)))

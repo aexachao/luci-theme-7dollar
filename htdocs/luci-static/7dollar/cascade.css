@@ -715,8 +715,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-kv dd{margin:2px 0 0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .td-kv dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .td-kv dd+dd{font-size:12px;color:var(--ink-3);margin-top:1px}
-.td-kv .off dd,.td-kv dd.warn+dd{color:var(--ink-3)}
-.td-kv dd.warn{color:var(--warn)}
+.td-kv .off dd{color:var(--ink-3)}
 .td-card>.td-kv:last-child,#td-wifi>.td-kv,#td-ports{margin-bottom:0}
 /* storage */
 .td-meter+.td-meter{margin-top:16px}
@@ -727,7 +726,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-bar.full i{background:var(--warn)}
 
 /* system rings */
-.td-rings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.td-rings{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:14px}
 .td-ring{display:flex;align-items:center;gap:12px;min-width:0}
 .td-ring svg{width:58px;height:58px;transform:rotate(-90deg);flex:none}
 .td-ring circle{fill:none;stroke-width:5}
