@@ -29,7 +29,7 @@ return view.extend({
 			td.wan(),
 			ui.menu.load().then(menu => Promise.all([ menu, td.menuHas(menu, 'network/wireless') ? td.wifiInfo() : null ])),
 			td.uciType('firewall', 'defaults'),
-			td.readFile('/sys/module/mt7915e/parameters/wed_enable'),
+			Promise.all([ 'mt7915e', 'mt7996e' ].map(m => td.readFile(`/sys/module/${m}/parameters/wed_enable`))).then(l => l.find(Boolean)),   // Wi-Fi 6 / Wi-Fi 7 MediaTek
 			td.readFile('/proc/sys/net/ipv4/tcp_congestion_control'),
 			td.readFile('/proc/stat'),
 			td.readFile('/proc/net/dev')
@@ -449,9 +449,12 @@ return view.extend({
 			this.set('td-lat', w && w.up ? T('已连接', 'Connected') : T('未连接', 'Offline'));
 			return Promise.resolve();
 		}
+		/* a gateway that never answers ping (many ISP modems) is retried once a minute, not every 10 s */
+		if (this.s.miss >= 3 && this.ticks % 6) return Promise.resolve();
 		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', w.gw ]), {}).then(r => {
 			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
 			const v = m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
+			this.s.miss = v ? 0 : (this.s.miss || 0) + 1;
 			this.set('td-ping', v || T('无响应', 'No reply'));
 			this.set('td-lat', v ? T('延迟 ', 'Latency ') + v : T('已连接', 'Connected'));
 		});
