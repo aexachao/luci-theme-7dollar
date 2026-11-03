@@ -392,21 +392,18 @@ fieldset{min-width:0}
 /* editable grids (one control per cell): tighter gutters, controls shrink to a usable minimum */
 .table.cbi-section-table .th,.table.cbi-section-table .td{padding-left:8px;padding-right:8px}
 .table.cbi-section-table input[type=password],.table.cbi-section-table input[type=text],.table.cbi-section-table textarea,.table.cbi-section-table select,.table.cbi-section-table .cbi-select{width:100%;min-width:64px}
-/* Action buttons sit in a 2-wide grid with a content-sized column. A plain flex row let the
-   table squeeze this cell down to ~50px and stack all four buttons; the table then froze that
-   collapsed width into the column (form.js measures it once). max-content cannot shrink. */
+/* Row actions stay on one line, four-button interface rows included. A plain flex row without
+   max-content let the table squeeze this cell down to ~50px and stack the buttons; the table
+   then froze that collapsed width into the column (form.js measures it once). */
 .td.cbi-section-actions{text-align:right;white-space:normal}
 /* form.js freezes each action column to the div's measured width. With border-box that width
    includes the cell padding, so the buttons spilled past the row highlight; content-box keeps
    the measured width and the padding additive. Card mode below resets it. */
 .td.cbi-section-actions,th.cbi-section-actions{box-sizing:content-box}
-.td.cbi-section-actions>*{display:grid;grid-template-columns:repeat(2,max-content);justify-content:end;align-content:center;gap:6px;width:max-content;max-width:100%}
+.td.cbi-section-actions>*{display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:6px;width:max-content;max-width:100%}
 .td.cbi-section-actions>*>form{display:flex;gap:6px;margin:0}
 .td.cbi-section-actions .cbi-button{min-height:32px;padding:0 12px;font-size:13px;white-space:nowrap;flex:none}
 .td.cbi-section-actions>*>form>.cbi-button{flex:1 1 auto}
-/* Sortable rows only carry edit/delete plus a grip; the two-column cap above would stack the
-   two buttons for no reason. Keep handle and buttons on a single line. */
-.td.cbi-section-actions>*:has(>.drag-handle){display:flex;align-items:center;justify-content:flex-end;gap:6px}
 /* The sort handle is a cbi-button too; render it as a compact grip, not a third button. */
 .td.cbi-section-actions .drag-handle{width:24px;min-height:32px;padding:0;border:0;background:none;box-shadow:none;color:var(--ink-3);font-size:15px}
 .td.cbi-section-actions .drag-handle:hover{background:var(--hover);color:var(--ink);border-radius:8px}
@@ -653,9 +650,9 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
    Keyed to the width of the content area, not the viewport: the icon rail at 761–1100px leaves
    less room than a phone, so tables turn into cards wherever they would not fit. Modals are
    containers too, so dialogs follow their own width. */
-/* Interfaces carries four row actions plus a wide stats block. With the 2×2 action column the
-   table needs ~890px in Chinese and ~923px in English, so below 1000px it turns into card rows
-   instead of waiting for the generic 700px rule. */
+/* Interfaces carries four row actions plus a wide stats block. One action row leaves the stats
+   block too narrow below 1000px, so it turns into card rows there instead of waiting for the
+   generic 700px rule. */
 @container main (max-width:1000px){
   [data-page=admin-network-network] .table{display:flex;flex-direction:column}
   [data-page=admin-network-network] .tr{display:flex;flex-wrap:wrap;align-items:flex-end;border-top:1px solid var(--line-soft);padding:8px 0}
