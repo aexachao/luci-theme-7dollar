@@ -150,11 +150,9 @@ return view.extend({
 								<div><dt class="td-fact-state"><span class="td-dot" id="td-wan-dot"></span>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
 							</dl>
 						</div>
-						<div class="td-facts-pager" id="td-facts-pager" hidden>
-							<button type="button" class="td-facts-pg prev" id="td-fg-prev" aria-label="${esc(T('上一项', 'Previous'))}">${icon('chev')}</button>
-							<span class="td-facts-dots" id="td-facts-dots"></span>
-							<button type="button" class="td-facts-pg next" id="td-fg-next" aria-label="${esc(T('下一项', 'Next'))}">${icon('chev')}</button>
-						</div>
+						<button type="button" class="td-facts-pg prev" id="td-fg-prev" aria-label="${esc(T('上一项', 'Previous'))}" hidden>${icon('chev')}</button>
+						<button type="button" class="td-facts-pg next" id="td-fg-next" aria-label="${esc(T('下一项', 'Next'))}" hidden>${icon('chev')}</button>
+						<div class="td-facts-dots" id="td-facts-dots" hidden></div>
 					</div>
 				</section>
 
@@ -291,14 +289,19 @@ return view.extend({
 
 	/* Arrows and dots only exist with more than one page; one page reads as a plain facts row. */
 	syncFacts() {
-		const view = this.$('td-facts-view'), pager = this.$('td-facts-pager'), dots = this.$('td-facts-dots');
-		if (!view || !pager) return;
+		const view = this.$('td-facts-view'), dots = this.$('td-facts-dots');
+		const prev = this.$('td-fg-prev'), next = this.$('td-fg-next');
+		if (!view) return;
 		const labels = [ T('宽带', 'Broadband') ].concat(((this.s.wan && this.s.wan.uplinks) || []).map(u => u.name));
 		const n = view.children.length;
-		pager.hidden = n < 2;
-		dots.innerHTML = n > 1
-			? labels.slice(0, n).map((l, i) => `<button type="button" class="td-facts-dot" data-i="${i}" aria-label="${esc(l)}"></button>`).join('')
-			: '';
+		if (prev) prev.hidden = n < 2;
+		if (next) next.hidden = n < 2;
+		if (dots) {
+			dots.hidden = n < 2;
+			dots.innerHTML = n > 1
+				? labels.slice(0, n).map((l, i) => `<button type="button" class="td-facts-dot" data-i="${i}" aria-label="${esc(l)}"></button>`).join('')
+				: '';
+		}
 		this.setPage(this.s.page);
 	},
 
