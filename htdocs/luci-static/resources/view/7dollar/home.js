@@ -40,11 +40,13 @@ return view.extend({
 		const hidden = String(conf.hidden_cards || '').split(/[\s,]+/).filter(Boolean);
 		const showOC = conf.plugin_openclash == '1' && td.menuHas(menu, 'services/openclash');
 		const mode = wan && wan.up ? wan.mode : 'wan';
+		/* wifiInfo() always returns an object; only actual radios mean the box has Wi-Fi. */
+		const hasWifi = !!(wifi && Object.keys(wifi.radios || {}).length);
 
 		this.s = {
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
 			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi || { radios: {}, aps: [] }, info: info, board: board,
-			clients: [], ping: null, oc: showOC, hasWifi: !!wifi, mode: mode
+			clients: [], ping: null, oc: showOC, hasWifi: hasWifi, mode: mode
 		};
 
 		const fwd = Object.values(fw || {})[0] || {};
