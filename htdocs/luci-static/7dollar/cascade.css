@@ -766,14 +766,25 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-link.down .ln{background:repeating-linear-gradient(90deg,var(--bad) 0 6px,transparent 6px 11px);opacity:.6}
 @keyframes td-flow{from{left:0;opacity:0}15%,85%{opacity:1}to{left:calc(100% - 8px);opacity:0}}
 @container (max-width:430px){.td-link .t{visibility:hidden}.td-node small{display:none}}
-.td-facts{display:flex;flex-direction:column;gap:16px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
-.td-fact-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 12px;margin:0}
-/* Wide cards give both rows the same three columns (address / DNS / connected), so the WAN and
-   the IPTV row line up and together span the card without squeezing each other. */
+.td-facts{margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft);overflow:hidden}
+.td-facts-view{display:flex;transition:transform var(--base) var(--ease)}
+.td-fact-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 12px;margin:0;flex:0 0 100%;min-width:0}
+/* every carousel page shares the same three columns (address / DNS / connected), so switching
+   pages keeps the grid in place and spans the card */
 @container (min-width:600px){
-	.td-facts{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) minmax(0,1fr);column-gap:24px;row-gap:16px}
-	.td-fact-row{display:contents}
+	.td-fact-row{grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) minmax(0,1fr);column-gap:24px}
 }
+/* page switcher: prev arrow · dots · next arrow, only with 2+ pages (pager is [hidden] otherwise) */
+.td-facts-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.td-facts-pager[hidden]{display:none}
+.td-facts-pg{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:99px;background:var(--surface);color:var(--ink-2);cursor:pointer}
+.td-facts-pg:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.td-facts-pg:disabled{opacity:.3;cursor:default}
+.td-facts-pg svg{width:13px;height:13px}
+.td-facts-pg.prev svg{transform:rotate(180deg)}
+.td-facts-dots{display:flex;align-items:center;gap:6px}
+.td-facts-dot{width:7px;height:7px;border:0;padding:0;border-radius:99px;background:var(--line);cursor:pointer;transition:width var(--base) var(--ease),background var(--base) var(--ease)}
+.td-facts-dot.on{width:18px;background:var(--accent)}
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
 /* the state dot sits with the connected label; green while up, red when down */

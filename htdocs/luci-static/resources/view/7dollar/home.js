@@ -47,7 +47,7 @@ return view.extend({
 		this.s = {
 			down: new Array(N).fill(0), up: new Array(N).fill(0),
 			last: null, cpu: td.cpuStat(stat), cpuPct: null, wan: wan, wifi: wifi || { radios: {}, aps: [] }, info: info, board: board,
-			clients: [], ping: null, oc: showOC, hasWifi: hasWifi, mode: mode
+			clients: [], ping: null, oc: showOC, hasWifi: hasWifi, mode: mode, page: 0
 		};
 
 		const fwd = Object.values(fw || {})[0] || {};
@@ -143,11 +143,18 @@ return view.extend({
 					<div class="td-card-h"><h3>${esc(T('网络连接', 'Connection'))}</h3><span class="td-chip" id="td-conn-chip"></span></div>
 					<div class="td-topo">${topo}</div>
 					<div class="td-facts" id="td-facts">
-						<dl class="td-fact-row">
-							<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd><dd class="td-fact-sub" id="td-wanip6" hidden></dd></div>
-							<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
-							<div><dt class="td-fact-state"><span class="td-dot" id="td-wan-dot"></span>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
-						</dl>
+						<div class="td-facts-view" id="td-facts-view">
+							<dl class="td-fact-row td-fact-page">
+								<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd><dd class="td-fact-sub" id="td-wanip6" hidden></dd></div>
+								<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
+								<div><dt class="td-fact-state"><span class="td-dot" id="td-wan-dot"></span>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
+							</dl>
+						</div>
+						<div class="td-facts-pager" id="td-facts-pager" hidden>
+							<button type="button" class="td-facts-pg prev" id="td-fg-prev" aria-label="${esc(T('上一项', 'Previous'))}">${icon('chev')}</button>
+							<span class="td-facts-dots" id="td-facts-dots"></span>
+							<button type="button" class="td-facts-pg next" id="td-fg-next" aria-label="${esc(T('下一项', 'Next'))}">${icon('chev')}</button>
+						</div>
 					</div>
 				</section>
 
@@ -157,6 +164,13 @@ return view.extend({
 
 		this.root = root;
 		this.$ = id => root.querySelector('#' + id);
+
+		this.$('td-fg-prev').addEventListener('click', () => this.setPage(this.s.page - 1));
+		this.$('td-fg-next').addEventListener('click', () => this.setPage(this.s.page + 1));
+		this.$('td-facts-dots').addEventListener('click', ev => {
+			const b = ev.target.closest('button');
+			if (b) this.setPage(+b.dataset.i);
+		});
 
 		this.greet();
 		this.paintStatic();
@@ -250,33 +264,59 @@ return view.extend({
 		this.paintTags();
 	},
 
-	/* Secondary dial-ups (IPTV, backup WAN) get a facts row of their own, with the same fields as
-	 * the WAN row. The IPv6 address belongs to the WAN, not to an uplink. */
+	/* Each dial-up (IPTV, backup WAN) becomes another page in the facts carousel. The IPv6
+	 * address belongs to the WAN page, not to an uplink page. */
 	paintUplinks() {
-		const facts = this.$('td-facts');
-		if (!facts) return;
+		const view = this.$('td-facts-view');
+		if (!view) return;
 		const list = (this.s.wan && this.s.wan.uplinks) || [];
 		const html = list.map(u => {
 			const addr = u.ip || u.ip6 || T('未连接', 'Not connected');
 			const proto = PROTO[u.proto] || u.proto;
 			const dns = (u.dns || []).join(', ');
 			const label = `${esc(u.name)}${esc(T('地址', ' address'))}${proto ? ` · ${esc(proto)}` : ''}`;
-			return `<dl class="td-fact-row td-fact-uplink">`
+			return `<dl class="td-fact-row td-fact-page td-fact-uplink">`
 				+ `<div><dt>${label}</dt><dd${u.up ? '' : ' class="td-muted"'}>${esc(addr)}</dd></div>`
 				+ `<div><dt>DNS</dt><dd${dns ? '' : ' class="td-muted"'}>${esc(dns || '—')}</dd></div>`
 				+ `<div><dt class="td-fact-state"><span class="td-dot${u.up ? '' : ' bad'}"></span>${esc(T('已连接', 'Connected for'))}</dt><dd>${u.uptime ? esc(td.duration(u.uptime)) : '—'}</dd></div>`
 				+ `</dl>`;
 		}).join('');
 		if (html != this.s.uplinks) {
-			facts.querySelectorAll('.td-fact-uplink').forEach(n => n.remove());
-			facts.insertAdjacentHTML('beforeend', html);
+			view.querySelectorAll('.td-fact-uplink').forEach(n => n.remove());
+			view.insertAdjacentHTML('beforeend', html);
 			this.s.uplinks = html;
+			this.syncFacts();
 		}
 	},
 
-	/* The rate card keeps the connection card's height without its secondary dial-up rows. The
-	 * lower right column is pulled up under it, so the cards below start right after the rate
-	 * card instead of waiting for the taller connection card. */
+	/* Arrows and dots only exist with more than one page; one page reads as a plain facts row. */
+	syncFacts() {
+		const view = this.$('td-facts-view'), pager = this.$('td-facts-pager'), dots = this.$('td-facts-dots');
+		if (!view || !pager) return;
+		const labels = [ T('宽带', 'Broadband') ].concat(((this.s.wan && this.s.wan.uplinks) || []).map(u => u.name));
+		const n = view.children.length;
+		pager.hidden = n < 2;
+		dots.innerHTML = n > 1
+			? labels.slice(0, n).map((l, i) => `<button type="button" class="td-facts-dot" data-i="${i}" aria-label="${esc(l)}"></button>`).join('')
+			: '';
+		this.setPage(this.s.page);
+	},
+
+	setPage(i) {
+		const view = this.$('td-facts-view'), dots = this.$('td-facts-dots');
+		const prev = this.$('td-fg-prev'), next = this.$('td-fg-next');
+		if (!view) return;
+		const n = view.children.length;
+		this.s.page = Math.max(0, Math.min(i, n - 1));
+		view.style.transform = `translateX(-${this.s.page * 100}%)`;
+		if (prev) prev.disabled = this.s.page <= 0;
+		if (next) next.disabled = this.s.page >= n - 1;
+		if (dots) [ ...dots.children ].forEach((d, k) => d.classList.toggle('on', k == this.s.page));
+	},
+
+	/* The rate card keeps the connection card's height: dial-ups are carousel pages, so the
+	 * connection card is already at its one-page height. The lower right column is pulled up
+	 * under the rate card, so the cards below start right after it. */
 	layoutPair() {
 		const root = this.root;
 		if (!root || !root.isConnected) return;
@@ -294,20 +334,10 @@ return view.extend({
 			return;
 		}
 
-		const facts = conn.querySelector('.td-facts');
-		const gap = facts ? parseFloat(getComputedStyle(facts).rowGap) || 0 : 0;
-		let extra = 0;
-		(facts ? [ ...facts.querySelectorAll('.td-fact-uplink') ] : []).forEach(row => {
-			let h = 0;
-			for (const cell of row.children) h = Math.max(h, cell.getBoundingClientRect().height);
-			extra += h + gap;
-		});
-
 		const connH = conn.getBoundingClientRect().height;
-		const min = Math.max(0, connH - extra);
 		rate.style.height = '';
 		const natural = rate.getBoundingClientRect().height;
-		const rateH = Math.round(Math.max(min, natural));
+		const rateH = Math.round(Math.max(connH, natural));
 		rate.style.height = rateH + 'px';
 
 		if (right) {
