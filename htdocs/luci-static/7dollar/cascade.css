@@ -766,7 +766,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-link.down .ln{background:repeating-linear-gradient(90deg,var(--bad) 0 6px,transparent 6px 11px);opacity:.6}
 @keyframes td-flow{from{left:0;opacity:0}15%,85%{opacity:1}to{left:calc(100% - 8px);opacity:0}}
 @container (max-width:430px){.td-link .t{visibility:hidden}.td-node small{display:none}}
-.td-facts{margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft);overflow:hidden}
+.td-facts{margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft);overflow:hidden;padding-left:14px;padding-right:14px;margin-left:-14px;margin-right:-14px}
 .td-facts-view{display:flex;transition:transform var(--base) var(--ease)}
 .td-fact-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 12px;margin:0;flex:0 0 100%;min-width:0}
 /* every carousel page shares the same three columns (address / DNS / connected), so switching
@@ -774,19 +774,18 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 @container (min-width:600px){
 	.td-fact-row{grid-template-columns:minmax(0,2.2fr) minmax(0,1.6fr) minmax(0,1fr);column-gap:24px}
 }
-/* page switcher: the dots sit under the facts, centered and small; the arrows hang off the
-   facts row itself, vertically centered next to it, only with 2+ pages ([hidden] otherwise) */
+/* page switcher: the dots sit under the facts, centered and small; the arrows hang inside the
+   facts row, vertically centered beside it, only with 2+ pages ([hidden] otherwise) */
 .td-facts{position:relative}
-.td-facts-pager{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:12px}
-.td-facts-pager[hidden]{display:none}
+.td-facts-dots{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px}
+.td-facts-dots[hidden]{display:none}
 .td-facts-pg{position:absolute;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:0;border-radius:99px;background:var(--surface-2);color:var(--ink-3);cursor:pointer;z-index:1}
 .td-facts-pg:hover:not(:disabled){background:var(--hover);color:var(--accent)}
 .td-facts-pg:disabled{opacity:0;cursor:default}
-.td-facts-pg.prev{left:-14px}
-.td-facts-pg.next{right:-14px}
+.td-facts-pg.prev{left:0}
+.td-facts-pg.next{right:0}
 .td-facts-pg svg{width:12px;height:12px}
 .td-facts-pg.prev svg{transform:rotate(180deg)}
-.td-facts-dots{display:flex;align-items:center;gap:6px}
 .td-facts-dot{width:5px;height:5px;border:0;padding:0;border-radius:99px;background:var(--line);cursor:pointer;transition:width var(--base) var(--ease),background var(--base) var(--ease)}
 .td-facts-dot.on{width:12px;background:var(--ink-3)}
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
