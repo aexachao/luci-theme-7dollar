@@ -13,7 +13,7 @@
 	const mode = (conf.mode in [ 'light', 'dark', 'auto' ]) ? conf.mode : 'auto';
 	const zh = !!match(dispatcher.lang ?? '', /^zh/);
 	const T = (z, e) => zh ? z : e;
-	const ver = '1.0.9';
+	const ver = '1.0.10';
 	const hostname = striptags(boardinfo.hostname ?? 'OpenWrt');
 	const model = striptags(boardModel(boardinfo));
 	const sprite = `${media}/icons.svg`;
@@ -46,24 +46,30 @@
 	<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', ctx.request_path), true) }}">
 		{% if (!blank_page): %}
 		<div class="td-app">
-			<aside class="td-side">
+			<header class="td-topbar">
 				<a class="td-brand" href="{{ dispatcher.build_url('admin') }}">
 					<b>{{ hostname }}</b><small>{{ model }}</small>
 				</a>
-				<button class="td-search" type="button" id="td-search" title="{{ T('搜索', 'Search') }}">
-					<svg class="i" aria-hidden="true"><use href="{{ sprite }}#search"></use></svg>
-					<span>{{ T('搜索功能或设置', 'Search settings') }}</span><kbd>⌘K</kbd>
-				</button>
 				<nav class="td-nav" id="td-nav" aria-label="{{ T('主菜单', 'Main menu') }}"></nav>
-				<div class="td-side-foot">
-					<button class="td-icon-btn" type="button" id="td-mode" title="{{ T('切换深浅色', 'Toggle dark mode') }}"><svg class="i" aria-hidden="true"><use href="{{ sprite }}#moon"></use></svg></button>
-					<a class="td-icon-btn" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ T('退出登录', 'Log out') }}"><svg class="i" aria-hidden="true"><use href="{{ sprite }}#logout"></use></svg></a>
+				<div class="td-topbar-tools">
+					<button class="td-search" type="button" id="td-search" title="{{ T('搜索', 'Search') }}">
+						<svg class="i" aria-hidden="true"><use href="{{ sprite }}#search"></use></svg>
+						<span>{{ T('搜索功能或设置', 'Search settings') }}</span><kbd>⌘K</kbd>
+					</button>
+					<div class="td-side-foot">
+						<button class="td-icon-btn" type="button" id="td-mode" title="{{ T('切换深浅色', 'Toggle dark mode') }}"><svg class="i" aria-hidden="true"><use href="{{ sprite }}#moon"></use></svg></button>
+						<a class="td-icon-btn" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ T('退出登录', 'Log out') }}"><svg class="i" aria-hidden="true"><use href="{{ sprite }}#logout"></use></svg></a>
+					</div>
 				</div>
+			</header>
+
+			<aside class="td-side" aria-label="{{ T('二级菜单', 'Secondary menu') }}">
+				<nav class="td-pills" id="td-pills"></nav>
 			</aside>
 
 			<main class="td-main">
 				<div id="maincontent">
-					<div class="td-top"><div class="td-pills" id="td-pills"></div><div id="indicators"></div></div>
+					<div class="td-top"><div id="indicators"></div></div>
 
 					{% if (getuid() == 0 && getspnam('root')?.pwdp === ''): %}
 					<div class="alert-message warning">

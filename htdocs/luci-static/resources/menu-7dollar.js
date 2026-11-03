@@ -13,13 +13,30 @@
 
 const T = td.T, icon = td.icon, esc = td.esc;
 const mqPhone = window.matchMedia('(max-width:760px)');
+const MENU_CACHE_KEY = '7dollar-menu-version';
+const MENU_CACHE_VERSION = '1.0.10';
 
 return baseclass.extend({
 	__init__() {
+		this.resetMenuCache();
 		ui.menu.load().then(L.bind(this.render, this));
 		this.bindKeys();
 		this.bindMode();
 		this.bindVisibility();
+		this.bindPollLabel();
+		this.bindTabHeading();
+		this.bindSectionStructure();
+		this.bindIndicators();
+	},
+
+	/* ui.menu caches the raw tree in sessionStorage, so a theme switch keeps the old menu */
+	resetMenuCache() {
+		try {
+			if (sessionStorage.getItem(MENU_CACHE_KEY) !== MENU_CACHE_VERSION) {
+				ui.menu.flushCache();
+				sessionStorage.setItem(MENU_CACHE_KEY, MENU_CACHE_VERSION);
+			}
+		} catch (e) {}
 	},
 
 	/* Every LuCI page refreshes through one shared poll loop; stop it while the tab is hidden so a
@@ -35,6 +52,257 @@ return baseclass.extend({
 				poll.start();
 			}
 		});
+	},
+
+	/* LuCI labels the poll pill "Refreshing"/"Paused"; spell out what the green or red dot means. */
+	bindPollLabel() {
+		const box = document.getElementById('indicators');
+		if (!box) return;
+
+		const sync = () => box.querySelectorAll('[data-indicator="poll-status"]').forEach(el => {
+			const text = el.getAttribute('data-style') == 'inactive'
+				? T('暂停刷新', 'Refresh paused')
+				: T('自动刷新中', 'Auto-refreshing');
+
+			if (el.textContent !== text)
+				el.textContent = text;
+		});
+
+		new MutationObserver(sync).observe(box, {
+			childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: [ 'data-style' ]
+		});
+
+		sync();
+	},
+
+	/* Menu tabs already name the page, so repeating the view title below them is noise.
+	 * Keep the description under the tabs, the way the Startup page does. */
+	bindTabHeading() {
+		const main = document.getElementById('maincontent');
+		if (!main) return;
+
+		let raf = 0;
+		const sync = () => {
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(() => {
+				const view = document.getElementById('view');
+				if (!view) return;
+
+				const tabs = document.querySelector('#tabmenu .tabs');
+				let head = null;
+
+				if (tabs)
+					for (const h of view.querySelectorAll('h1, h2'))
+						if (!h.closest('.cbi-section')) { head = h; break; }
+
+				const old = this._tabHead;
+				if (old && old !== head)
+					old.classList.remove('td-tab-title-hidden');
+
+				if (head)
+					head.classList.add('td-tab-title-hidden');
+
+				this._tabHead = head;
+			});
+		};
+
+		new MutationObserver(sync).observe(main, { childList: true, subtree: true });
+		sync();
+	},
+
+	/* DHCP's lease tab puts static leases and the two active-lease tables in one card, and the
+	 * static grid ships without a heading. Split the blocks into their own cards, name the one
+	 * that has no title, and move long help behind a disclosure. Scoped by page id so no other
+	 * view gets its DOM rearranged. */
+	bindSectionStructure() {
+		const page = document.body.getAttribute('data-page') || '';
+		if (page != 'admin-network-dhcp' && page != 'admin-network-dns') return;
+
+		const main = document.getElementById('maincontent');
+		if (!main) return;
+
+		const titles = {
+			'admin-network-dhcp': {
+				'__static_leases__': T('静态租约', 'Static leases')
+			}
+		}[page] || {};
+
+		let raf = 0;
+		const sync = () => {
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(() => {
+				this.splitSectionBlocks(main, titles);
+				this.collapseSectionHelp(main);
+			});
+		};
+
+		new MutationObserver(sync).observe(main, { childList: true, subtree: true });
+		sync();
+	},
+
+	splitSectionBlocks(main, titles) {
+		const outer = main.querySelector('.cbi-section[id$="__leases__"]');
+		if (!outer || outer.classList.contains('td-section-stack')) return;
+
+		const node = outer.querySelector(':scope > .cbi-section-node');
+		if (!node) return;
+
+		const blocks = Array.from(node.children).filter(el =>
+			el.classList.contains('cbi-section') ||
+			(el.classList.contains('cbi-value') && el.querySelector('h4, table')));
+
+		if (blocks.length < 2) return;
+
+		outer.classList.add('td-section-stack');
+
+		for (const block of blocks) {
+			block.classList.add('td-subcard');
+
+			const sid = (block.id.match(/(__[A-Za-z0-9_]+__)$/) || [])[1];
+			const label = sid && titles[sid];
+
+			if (label && !block.querySelector(':scope > h3, :scope > h4, :scope > legend')) {
+				const head = document.createElement('h3');
+				head.textContent = label;
+				block.insertBefore(head, block.firstChild);
+			}
+		}
+	},
+
+	collapseSectionHelp(root) {
+		for (const descr of root.querySelectorAll('.cbi-section-descr')) {
+			if (descr.closest('.modal') || descr.closest('.td-desc') || descr.dataset.tdCollapsed)
+				continue;
+
+			if (descr.textContent.trim().length <= 160)
+				continue;
+
+			const details = document.createElement('details');
+			const summary = document.createElement('summary');
+
+			details.className = 'td-desc';
+			summary.textContent = T('说明', 'Details');
+			descr.dataset.tdCollapsed = '1';
+			descr.parentNode.insertBefore(details, descr);
+			details.appendChild(summary);
+			details.appendChild(descr);
+		}
+	},
+
+	/* The indicator sits at the top-right of the content area: level with the page tabs when the
+	 * page has them, otherwise level with the page title. Alerts and async views move that anchor,
+	 * so measure it instead of hard-coding an offset. */
+	bindIndicators() {
+		const main = document.getElementById('maincontent');
+		if (!main) return;
+
+		let raf = 0;
+		const schedule = () => {
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(() => this.positionIndicators());
+		};
+
+		window.addEventListener('resize', schedule);
+		new MutationObserver(schedule).observe(main, { childList: true, characterData: true, subtree: true });
+
+		if ('ResizeObserver' in window) {
+			const ro = new ResizeObserver(schedule);
+			[ 'indicators', 'view', 'tabmenu' ].forEach(id => {
+				const el = document.getElementById(id);
+				if (el) ro.observe(el);
+			});
+		}
+
+		schedule();
+		setTimeout(schedule, 500);
+	},
+
+	positionIndicators() {
+		const top = document.querySelector('.td-top');
+		const box = document.getElementById('maincontent');
+		const ind = document.getElementById('indicators');
+		if (!top || !box || !ind) return;
+
+		const clearHead = () => {
+			if (this._indHead) { this._indHead.style.paddingRight = ''; this._indHead = null; }
+		};
+
+		if (mqPhone.matches) {
+			top.style.removeProperty('top');
+			top.style.removeProperty('right');
+			clearHead();
+			return;
+		}
+
+		const shown = el => el && el.getClientRects().length > 0;
+		const tabs = document.querySelector('#tabmenu .tabs');
+		const view = document.getElementById('view');
+		let ref = shown(tabs) ? tabs : null;
+		let align = 'center';
+
+		if (!ref)
+			for (const h of document.querySelectorAll('#view h1, #view h2')) {
+				if (shown(h)) { ref = h; break; }
+			}
+
+		if (!ref && shown(view)) {
+			ref = view;
+			align = 'top';
+		}
+
+		if (!ref) {
+			top.style.top = '0px';
+			top.style.removeProperty('right');
+			clearHead();
+			return;
+		}
+
+		/* Home and Devices put an action button on the title row. Keep the indicators on the same
+		 * line and immediately left of it: .td-head aligns the button to the bottom of the text
+		 * block, so aligning with the h1 left the two on different baselines. */
+		const head = ref.closest('.td-head');
+		const action = head && head.querySelector(':scope > a, :scope > button, :scope > .btn');
+
+		if (action && ind.offsetWidth) {
+			clearHead();
+
+			const gap = 16;
+			const b = box.getBoundingClientRect(), a = action.getBoundingClientRect();
+			top.style.right = Math.max(0, Math.round(b.right - a.left + gap)) + 'px';
+
+			let measured = 0, node = action;
+			while (node && node != box) { measured += node.offsetTop; node = node.offsetParent; }
+
+			let y;
+			if (node == box)
+				y = measured + (action.offsetHeight - ind.offsetHeight) / 2;
+			else {
+				const r = action.getBoundingClientRect();
+				y = r.top - b.top + (r.height - ind.offsetHeight) / 2;
+			}
+
+			top.style.top = Math.max(0, Math.round(y)) + 'px';
+			return;
+		}
+
+		clearHead();
+		top.style.removeProperty('right');
+
+		/* Layout offsets ignore the view's entrance transform, so the indicator does not settle
+		 * 6px low when it is measured while #view is still animating. */
+		let measured = 0, node = ref;
+		while (node && node != box) { measured += node.offsetTop; node = node.offsetParent; }
+
+		let y;
+		if (node == box)
+			y = measured + (align == 'top' ? 0 : (ref.offsetHeight - ind.offsetHeight) / 2);
+		else {
+			const b = box.getBoundingClientRect();
+			const r = ref.getBoundingClientRect();
+			y = r.top - b.top + (align == 'top' ? 0 : (r.height - ind.offsetHeight) / 2);
+		}
+
+		top.style.top = Math.max(0, Math.round(y)) + 'px';
 	},
 
 	render(tree) {
@@ -63,8 +331,12 @@ return baseclass.extend({
 	},
 
 	href(group) {
-		const first = group.list[0];
-		return L.url(first.path);
+		/* The apps overview duplicates the sidebar on desktop, and landing there selects nothing.
+		 * Enter the first app instead; phones have no sidebar and keep the overview. */
+		const list = (group.id == 'apps' && !mqPhone.matches)
+			? group.list.filter(p => p.path != 'admin/apps')
+			: group.list;
+		return L.url((list[0] || group.list[0]).path);
 	},
 
 	renderNav(groups, current) {
@@ -92,18 +364,12 @@ return baseclass.extend({
 		if (!box || !current) return;
 
 		const g = groups.find(x => x.id == current.group);
-		let items = [];
+		/* The apps overview is the group's landing page in the top bar, so repeating "All apps"
+		 * in the sidebar is noise. Phones keep it because the group is absent from the bottom bar. */
+		const items = (current.group == 'apps' && !mqPhone.matches)
+			? g.list.filter(p => p.path != 'admin/apps')
+			: g.list;
 
-		if (g.id == 'apps') {
-			if (current.path == 'admin/apps') return;
-			const all = g.list.find(p => p.path == 'admin/apps');
-			if (all)
-				box.innerHTML = `<a class="back" href="${L.url(all.path)}">${icon('chev')}${esc(all.title)}</a>`;
-			box.innerHTML += `<a class="on" href="${L.url(current.path)}">${esc(current.title)}</a>`;
-			return;
-		}
-
-		items = g.list;
 		if (items.length < 2) return;
 
 		box.innerHTML = items.map(p => `<a href="${L.url(p.path)}" class="${p === current ? 'on' : ''}">${esc(p.title)}</a>`).join('');

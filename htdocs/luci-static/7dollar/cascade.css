@@ -13,6 +13,7 @@
   --ok:#5F8A55;--ok-soft:#E1EAD8;--warn:#B98330;--warn-soft:#F4E7CF;--bad:#C0533E;--bad-soft:#F6DDD5;
   --shadow:0 1px 1px rgba(20,20,20,.03),0 10px 30px -18px rgba(20,20,20,.18);
   --shadow-pop:0 24px 60px -20px rgba(20,20,20,.35),0 2px 6px rgba(20,20,20,.06);
+  --chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23958F83' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E");
   color-scheme:light;
 }
 [data-theme=dark]{--ok:#93AE82;--ok-soft:#2B3427;--warn:#D6A55A;--warn-soft:#3A3122;--bad:#E3826E;--bad-soft:#3E2621;--shadow:0 1px 1px rgba(0,0,0,.2),0 10px 30px -18px rgba(0,0,0,.6);--shadow-pop:0 24px 60px -20px rgba(0,0,0,.8);color-scheme:dark}
@@ -80,8 +81,9 @@ h6{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06
 .cbi-section-descr:empty,.cbi-map-descr:empty{display:none}
 
 /* ============================== app shell ============================== */
-.td-app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
-.td-side{position:sticky;top:0;height:100vh;padding:22px 16px;display:flex;flex-direction:column;gap:18px;min-width:0;z-index:20}
+.td-app{display:grid;grid-template-columns:224px minmax(0,1fr);grid-template-rows:60px minmax(0,1fr);grid-template-areas:"top top" "side main";min-height:100vh}
+.td-topbar{grid-area:top;position:sticky;top:0;z-index:500;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:16px;min-width:0;padding:0 20px;background:color-mix(in srgb,var(--surface) 94%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.td-topbar .td-brand{justify-self:start;padding:0 8px 0 0;max-width:170px;min-width:0}
 .td-brand{display:block;padding:4px 8px;color:var(--ink)!important;text-decoration:none!important;min-width:0}
 .td-brand b{display:block;font:600 17px/1.15 var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .td-brand small{display:block;color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -89,29 +91,37 @@ h6{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06
 .td-search:hover{border-color:var(--ink-3)}
 .td-search span{flex:1}
 kbd{font:11px var(--sans);padding:1px 6px;border:1px solid var(--line);border-radius:6px;color:var(--ink-3)}
-.td-nav{display:flex;flex-direction:column;gap:2px;margin:0;min-height:300px}
-.td-nav a{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:11px;color:var(--ink-2);text-decoration:none;transition:background var(--fast) var(--ease),color var(--fast) var(--ease);white-space:nowrap;animation:td-fade var(--base) var(--ease) both}
+.td-nav{justify-self:center;display:flex;flex-direction:row;align-items:center;gap:2px;margin:0;min-width:0;min-height:0;overflow-x:auto;scrollbar-width:none}
+.td-nav::-webkit-scrollbar{display:none}
+.td-nav a{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;color:var(--ink-2);text-decoration:none;transition:background var(--fast) var(--ease),color var(--fast) var(--ease);white-space:nowrap;font-size:14px;animation:td-fade var(--base) var(--ease) both}
 .td-nav a:hover{background:var(--hover);color:var(--ink);text-decoration:none}
-.td-nav a.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.td-nav a.on{background:var(--accent-soft);color:var(--accent-2)}
 .td-nav a.on svg{color:var(--accent)}
-.td-nav a em{margin-left:auto;font-style:normal;font-size:12px;color:var(--ink-3)}
+.td-nav a em{margin-left:2px;font-style:normal;font-size:11px;color:var(--ink-3)}
 .td-nav .short{display:none}
-.td-side-foot{margin-top:auto;display:flex;gap:6px;padding:0 4px}
+.td-topbar-tools{justify-self:end;display:flex;align-items:center;gap:16px;flex:none}
+.td-topbar .td-search{width:220px;flex:none;padding:8px 11px;border-radius:10px}
+.td-topbar .td-side-foot{margin:0;padding:0;display:flex;flex-direction:row;gap:2px}
+.td-side-foot{display:flex;gap:6px;padding:0 4px}
 .td-icon-btn{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;color:var(--ink-2)!important;background:none;cursor:pointer;text-decoration:none!important}
 .td-icon-btn:hover{background:var(--hover);color:var(--ink)!important}
-.td-main{padding:34px 40px 60px 24px;min-width:0;container:main/inline-size;position:relative}
-#maincontent{max-width:1200px;min-width:0}
+.td-side{grid-area:side;position:sticky;top:60px;height:calc(100vh - 60px);padding:18px 14px;overflow:auto;border-right:1px solid var(--line-soft);min-width:0;z-index:20}
+.td-side:has(#td-pills:empty){display:none}
+.td-app:has(#td-pills:empty){grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "main"}
+.td-main{grid-area:main;display:flex;flex-direction:column;padding:30px 40px 28px 30px;min-width:0;container:main/inline-size;position:relative}
+#maincontent{display:flex;flex:1 1 auto;flex-direction:column;width:100%;max-width:1200px;min-width:0;position:relative}
+.td-app:has(#td-pills:empty) #maincontent{margin-inline:auto}
 @keyframes td-fade{from{opacity:0}to{opacity:1}}
 @keyframes td-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-#view{animation:td-rise var(--slow) var(--ease)}
+#view{animation:td-rise var(--slow) var(--ease);flex:0 0 auto;margin-bottom:36px}
 
 /* indicators (unsaved changes, polling) */
 #indicators{display:flex;flex:none;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-left:auto;max-width:60%}
 #indicators:empty{display:none}
-.td-top{display:flex;align-items:center;gap:12px;min-width:0;margin:-4px 0 24px}
-.td-top>.td-pills{flex:1 1 auto;min-width:0;margin:0}
-.td-top:has(>.td-pills:empty){margin:0}
-.td-top:has(>.td-pills:empty)>#indicators{position:absolute;top:22px;right:40px;z-index:30}
+/* .td-top is placed by menu-7dollar.js: centered with the page tabs when they exist, otherwise with the page title */
+.td-top{position:absolute;top:0;right:0;z-index:30;display:flex;align-items:center;gap:12px;max-width:60%;margin:0;pointer-events:none}
+.td-top>#indicators{pointer-events:auto}
+.td-top:has(#indicators:empty){display:none}
 [data-indicator]{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:99px;font-size:12.5px;font-weight:500;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);box-shadow:var(--shadow);white-space:nowrap}
 [data-indicator][data-clickable]{cursor:pointer}
 [data-indicator][data-style=active]{background:var(--accent-2);border-color:var(--accent-2);color:var(--on-accent)}
@@ -122,39 +132,64 @@ kbd{font:11px var(--sans);padding:1px 6px;border:1px solid var(--line);border-ra
 [data-indicator=poll-status]:hover{background:var(--hover)}
 @keyframes td-breathe{50%{opacity:.35}}
 
-/* group pills (built by menu-7dollar.js) */
-.td-pills{display:flex;gap:6px;overflow-x:auto;padding:4px 0;scrollbar-width:none}
+/* secondary navigation (built by menu-7dollar.js) */
+.td-pills{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;overflow:visible;scrollbar-width:none}
 .td-pills::-webkit-scrollbar{display:none}
-.td-pills.scrolls{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}
-.td-pills.scrolls.end{-webkit-mask-image:none;mask-image:none}
 .td-pills:empty{display:none}
-.td-pills a{padding:7px 14px;border-radius:99px;color:var(--ink-2);text-decoration:none;white-space:nowrap;font-size:13.5px;transition:background var(--fast) var(--ease),color var(--fast) var(--ease)}
+.td-pills a{position:relative;padding:9px 12px;border-radius:10px;color:var(--ink-2);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;transition:background var(--fast) var(--ease),color var(--fast) var(--ease)}
 .td-pills a:hover{background:var(--hover);color:var(--ink);text-decoration:none}
-.td-pills a.on{background:var(--ink);color:var(--canvas)}
-.td-pills .back{display:inline-flex;align-items:center;gap:4px;color:var(--ink-3)}
-.td-pills .back svg{width:15px;height:15px;transform:rotate(180deg)}
+/* v2 active state: surface card, semibold label and a short accent rail on the left */
+.td-pills a.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+.td-pills a.on::before{content:"";position:absolute;inset-block:8px;inset-inline-start:0;width:3px;border-radius:99px;background:var(--accent)}
 
-/* rail: narrow windows or zoomed in */
-@media (max-width:1100px){
-  .td-app{grid-template-columns:76px minmax(0,1fr)}
-  .td-side{padding:22px 12px;align-items:center}
-  .td-brand,.td-search span,.td-search kbd,.td-nav .lbl,.td-nav a em{display:none}
-  .td-search{width:44px;height:44px;justify-content:center;padding:0}
-  .td-nav a{padding:12px;justify-content:center}
-  .td-side-foot{flex-direction:column}
-  .td-top:has(>.td-pills:empty)>#indicators{right:24px}
+/* below this width the full search field would push the centred nav off-centre */
+@media (max-width:1260px){
+  .td-topbar{gap:12px}
+  .td-topbar .td-search{width:40px;height:40px;justify-content:center;padding:0;border:0;background:none}
+  .td-topbar .td-search span,.td-topbar .td-search kbd{display:none}
+  .td-topbar-tools{gap:12px}
 }
-/* phone: bottom tab bar */
+/* narrow windows: icon rail for the primary nav */
+@media (max-width:1100px){
+  .td-app{grid-template-columns:188px minmax(0,1fr);grid-template-rows:56px minmax(0,1fr)}
+  .td-topbar{padding:0 16px}
+  .td-topbar .td-brand{max-width:120px}
+  .td-brand small{display:none}
+  .td-side{top:56px;height:calc(100vh - 56px);padding:14px 10px}
+  .td-main{padding:28px 24px 24px}
+}
+@media (max-width:880px){
+  .td-nav .lbl{display:none}
+  .td-nav a{padding:10px;justify-content:center}
+}
+/* phone: primary nav stays a bottom bar, secondary becomes a chip row */
 @media (max-width:760px){
-  .td-app{grid-template-columns:minmax(0,1fr)}
-  .td-side{position:fixed;inset:auto 0 0 0;top:auto;height:auto;flex-direction:row;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--line);z-index:600}
-  .td-brand,.td-search,.td-side-foot{display:none}
-  .td-nav{flex-direction:row;justify-content:space-around;width:100%;min-height:0}
-  .td-nav a{flex-direction:column;gap:3px;padding:6px 4px;font-size:11px;box-shadow:none!important;background:none!important;flex:1;justify-content:center}
-  .td-nav a.mob-hide{display:none}
-  .td-nav .lbl{display:inline}.td-nav .short{display:inline}.td-nav .lbl.has-short{display:none}
-  .td-main{padding:22px 16px 100px}
-  .td-top:has(>.td-pills:empty)>#indicators{position:static;margin:0 0 12px auto}
+  .td-app{grid-template-columns:minmax(0,1fr);grid-template-rows:52px auto minmax(0,1fr);grid-template-areas:"top" "side" "main"}
+  .td-app:has(#td-pills:empty){grid-template-rows:52px minmax(0,1fr);grid-template-areas:"top" "main"}
+  .td-topbar{display:flex;align-items:center;padding:0 12px;gap:4px;background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .td-topbar .td-brand{max-width:none;flex:1 1 auto;min-width:0;padding:0}
+  .td-brand b{font-size:15px}
+  .td-brand small{display:none}
+  .td-topbar-tools{gap:8px}
+  .td-topbar .td-nav{position:fixed;inset:auto 0 0 0;z-index:600;width:100%;min-height:0;flex-direction:row;justify-content:space-around;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--line);overflow:visible}
+  .td-topbar .td-nav a{flex:1;flex-direction:column;gap:3px;padding:6px 4px;font-size:11px;justify-content:center;box-shadow:none!important;background:none!important}
+  .td-topbar .td-nav a.on{background:var(--accent-soft)!important;color:var(--accent-2)}
+  .td-topbar .td-nav a.mob-hide{display:none}
+  .td-topbar .td-nav .lbl{display:inline}
+  .td-topbar .td-nav .short{display:inline}
+  .td-topbar .td-nav .lbl.has-short{display:none}
+  .td-topbar .td-search{width:40px;height:40px;justify-content:center;padding:0;border:0;background:none}
+  .td-side{position:static;top:auto;height:auto;padding:6px 12px;border-right:0;border-bottom:1px solid var(--line-soft);overflow:visible}
+  .td-pills{flex-direction:row;gap:6px;overflow-x:auto;padding:2px 0}
+  .td-pills.scrolls{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}
+  .td-pills.scrolls.end{-webkit-mask-image:none;mask-image:none}
+  .td-pills a{padding:7px 13px;border-radius:99px;font-size:13.5px}
+  .td-pills a.on{background:var(--ink);color:var(--canvas);font-weight:500;box-shadow:none}
+  .td-pills a.on::before{display:none}
+  .td-main{padding:18px 16px 96px}
+  .td-top{position:static;max-width:none;margin:0 0 12px;pointer-events:auto}
+  .td-top>#indicators{pointer-events:auto}
+  #view{margin-bottom:28px}
 }
 
 /* command palette / mobile sheet */
@@ -195,7 +230,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .cbi-button-positive:hover,.cbi-button-save:hover,.cbi-button-add:hover,.cbi-button-fieldadd:hover{background:var(--tint);border-color:var(--accent)}
 .cbi-button-negative,.cbi-button-remove,.cbi-button-reset,.cbi-section-remove .cbi-button,.btn.danger,.btn.error{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,var(--line));background:var(--surface)}
 .cbi-button-negative:hover,.cbi-button-remove:hover,.cbi-button-reset:hover,.cbi-section-remove .cbi-button:hover,.btn.danger:hover{background:var(--bad-soft);border-color:var(--bad)}
-.cbi-button-negative.important,.btn.danger.important{background:var(--bad);border-color:var(--bad);color:#fff}
+.cbi-button-negative.important,.btn.danger.important{border-color:var(--bad);font-weight:600}
 .cbi-button-up,.cbi-button-down{min-width:36px;padding:0 8px}
 .btn.large{min-height:46px;padding:0 20px;font-size:15px;border-radius:14px}
 .btn.small,.cbi-button.small{min-height:28px;padding:0 10px;font-size:12px;border-radius:8px}
@@ -205,6 +240,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .close{float:right;font-size:20px;line-height:1;color:var(--ink-3);cursor:pointer;opacity:.7}
 .close:hover{opacity:1;text-decoration:none}
 .control-group{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* LuCI's package manager lays bare labels out in its own flex grid; wrapped rows
+   default to stretch, which erased the step between a label and its field. */
+.controls>div:has(>input,>.control-group,>div:not(.cbi-progressbar)){align-content:flex-start;row-gap:6px}
 /* LuCI stacks controls with a bare <br> (e.g. System → Local time); give that line break room */
 br+:is(.control-group,input,select,textarea,.cbi-button,.btn,.cbi-dropdown,.cbi-select){margin-top:8px}
 
@@ -219,7 +257,7 @@ input[disabled],select[disabled],textarea[disabled],.cbi-select[disabled],.cbi-d
 input[type=file]{height:auto;border:0;background:none;padding:6px 0;width:auto!important}
 input[type=file]::file-selector-button{font:inherit;font-weight:500;margin-right:10px;padding:7px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 input[type=search]{-webkit-appearance:none;appearance:none}
-select{-webkit-appearance:none;appearance:none;padding-right:30px;cursor:pointer;background:var(--canvas) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23958F83' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E") no-repeat right 11px center}
+select{-webkit-appearance:none;appearance:none;padding-right:30px;cursor:pointer;background:var(--canvas) var(--chevron) no-repeat right 11px center}
 select[multiple]{height:auto;background-image:none;padding-right:11px}
 select option{background:var(--surface);color:var(--ink)}
 .cbi-select{position:relative;padding:0}
@@ -239,6 +277,9 @@ input[type=checkbox]:checked::after{transform:translateY(-1px) rotate(-45deg) sc
 input[type=radio]:checked::after{transform:scale(1)}
 input[type=checkbox]:focus-visible,input[type=radio]:focus-visible{box-shadow:0 0 0 4px var(--tint);outline:0}
 input[type=checkbox].cbi-input-invalid,input[type=radio].cbi-input-invalid{border-color:var(--bad)}
+/* Bare label-wrapped controls sit on the text baseline otherwise; center the row instead */
+label:has(>input[type=radio]),label:has(>input[type=checkbox]){display:inline-flex;align-items:center;gap:6px}
+label:has(>input[type=radio])>input[type=radio],label:has(>input[type=checkbox])>input[type=checkbox]{margin:0;vertical-align:middle}
 .cbi-checkbox,.cbi-radio{display:inline-flex;align-items:center;gap:2px;min-height:38px;cursor:pointer}
 .cbi-radio{margin-right:14px}
 .cbi-checkbox>label,.cbi-radio>label{cursor:pointer}
@@ -260,6 +301,23 @@ input[type=checkbox].cbi-input-invalid,input[type=radio].cbi-input-invalid{borde
 .cbi-value-description:empty{display:none}
 .cbi-value-helpicon,.cbi-value-helpicon img{display:none}
 .cbi-value>.cbi-section,.cbi-value>.cbi-tblsection{flex:1 1 100%}
+/* Pages whose section node holds several independent blocks (DHCP leases) get one card per
+   block. The outer section becomes a plain stack; the theme JS marks the blocks. */
+.cbi-section.td-section-stack{background:none;border:0;border-radius:0;box-shadow:none;padding:0;margin:0 0 18px}
+.td-section-stack>.cbi-section-node{display:flex;flex-direction:column;gap:18px}
+.td-section-stack>.cbi-section-node>.td-subcard{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:22px 24px;margin:0;min-width:0}
+.cbi-value.td-subcard{display:block;border-top:0}
+.cbi-value.td-subcard>.cbi-value-title:empty{display:none}
+.cbi-value.td-subcard>.cbi-value-field{width:100%}
+.td-subcard>h4:first-child,.td-subcard>.cbi-value-field>h4:first-child{font:500 18px/1.3 var(--serif);margin:0 0 12px}
+/* Long section help is disclosure, not a wall of text above the table. */
+.td-desc{margin:-4px 0 12px;max-width:76ch}
+.td-desc>summary{cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:2px 0;color:var(--ink-3);font-size:13px;line-height:1.5;list-style:none}
+.td-desc>summary::-webkit-details-marker{display:none}
+.td-desc>summary::before{content:"+";width:14px;font-family:var(--mono);text-align:center}
+.td-desc[open]>summary::before{content:"−"}
+.td-desc>summary:hover{color:var(--ink)}
+.td-desc .cbi-section-descr{margin:8px 0 0}
 div.cbi-value var,.td.cbi-value-field var{font-style:normal;color:var(--accent-2);font-family:var(--mono);font-size:.92em}
 div.cbi-value var[data-tooltip],.td.cbi-value-field var[data-tooltip],var.cbi-tooltip-container{cursor:help;border-bottom:1px dotted currentColor}
 .cbi-value-field .cbi-tooltip-container .cbi-tooltip{white-space:normal;color:var(--canvas);font-family:var(--sans)}
@@ -283,6 +341,9 @@ fieldset{min-width:0}
 .cbi-page-actions .cbi-button-apply{order:3}
 .cbi-page-actions .cbi-button-save{order:2}
 .cbi-page-actions .cbi-button-reset{order:1;margin-right:auto!important}
+/* LuCI's ComboButton hides "Apply unchecked" behind the caret. It is rarely needed and
+   reads as a stray dot next to the primary action, so the button applies directly. */
+.cbi-page-actions .cbi-dropdown.btn>.open{display:none}
 @media (max-width:760px){.cbi-page-actions,.actions{bottom:84px}.cbi-page-actions>*{flex:1 1 auto}}
 
 /* ============================== tabs ============================== */
@@ -293,13 +354,20 @@ fieldset{min-width:0}
 .cbi-tabmenu>li>a:hover,.tabs>li>a:hover{color:var(--ink)}
 .cbi-tabmenu>li.cbi-tab>a,.tabs>li.active>a{color:var(--ink);border-bottom-color:var(--accent)}
 .cbi-tab-disabled[data-errors]::after{content:attr(data-errors);align-self:center;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;font-weight:600;display:inline-grid;place-items:center;padding:0 5px;margin:0 6px 0 -4px}
-#tabmenu .tabs{margin-bottom:22px}
+/* nested menu tabs stack as rows; only the gap after the last row belongs to the content */
+#tabmenu>.tabs{margin-bottom:0}
+#tabmenu>.tabs+.tabs{margin-top:6px}
+#tabmenu>.tabs:last-child{margin-bottom:22px}
+/* a tabbed page is already named by its tabs; only a description belongs below them */
+.td-tab-title-hidden{display:none!important}
 .cbi-tabmenu.map{margin:0 0 18px}
 .cbi-tabmenu.map>li>a{font:500 16px var(--serif)}
 .cbi-section>.cbi-tabmenu:first-child{margin-top:-8px}
 .cbi-tabcontainer{min-width:0}
-[data-tab-title]{height:0;opacity:0;overflow:hidden}
-[data-tab-active=true]{height:auto;opacity:1;overflow:visible;transition:opacity var(--base) var(--ease)}
+/* Native CBI tabs: take inactive panes out of flow entirely. Collapsing them to height:0
+   kept their margins in play, so the content shifted down after switching tabs. */
+[data-tab-title]:not([data-tab-active="true"]){display:none}
+[data-tab-group]>[data-tab-title]{margin-top:0}
 .tab-content>.tab-pane,.tab-content>div{display:none}
 .tab-content>.active{display:block}
 
@@ -324,11 +392,24 @@ fieldset{min-width:0}
 /* editable grids (one control per cell): tighter gutters, controls shrink to a usable minimum */
 .table.cbi-section-table .th,.table.cbi-section-table .td{padding-left:8px;padding-right:8px}
 .table.cbi-section-table input[type=password],.table.cbi-section-table input[type=text],.table.cbi-section-table textarea,.table.cbi-section-table select,.table.cbi-section-table .cbi-select{width:100%;min-width:64px}
-/* action buttons keep to one row while there is room and wrap instead of pushing out of the card */
+/* Action buttons sit in a 2-wide grid with a content-sized column. A plain flex row let the
+   table squeeze this cell down to ~50px and stack all four buttons; the table then froze that
+   collapsed width into the column (form.js measures it once). max-content cannot shrink. */
 .td.cbi-section-actions{text-align:right;white-space:normal}
-.td.cbi-section-actions>*{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
-.td.cbi-section-actions>*>form{display:inline-flex;gap:6px;margin:0}
-.td.cbi-section-actions .cbi-button{min-height:32px;padding:0 12px;font-size:13px}
+/* form.js freezes each action column to the div's measured width. With border-box that width
+   includes the cell padding, so the buttons spilled past the row highlight; content-box keeps
+   the measured width and the padding additive. Card mode below resets it. */
+.td.cbi-section-actions,th.cbi-section-actions{box-sizing:content-box}
+.td.cbi-section-actions>*{display:grid;grid-template-columns:repeat(2,max-content);justify-content:end;align-content:center;gap:6px;width:max-content;max-width:100%}
+.td.cbi-section-actions>*>form{display:flex;gap:6px;margin:0}
+.td.cbi-section-actions .cbi-button{min-height:32px;padding:0 12px;font-size:13px;white-space:nowrap;flex:none}
+.td.cbi-section-actions>*>form>.cbi-button{flex:1 1 auto}
+/* Sortable rows only carry edit/delete plus a grip; the two-column cap above would stack the
+   two buttons for no reason. Keep handle and buttons on a single line. */
+.td.cbi-section-actions>*:has(>.drag-handle){display:flex;align-items:center;justify-content:flex-end;gap:6px}
+/* The sort handle is a cbi-button too; render it as a compact grip, not a third button. */
+.td.cbi-section-actions .drag-handle{width:24px;min-height:32px;padding:0;border:0;background:none;box-shadow:none;color:var(--ink-3);font-size:15px}
+.td.cbi-section-actions .drag-handle:hover{background:var(--hover);color:var(--ink);border-radius:8px}
 .td>input[type=text],.td>input[type=password],.td>select,.td>.cbi-dropdown:not(.btn):not(.cbi-button){width:100%}
 th[data-sortable-row]{cursor:pointer}
 th[data-sort-direction=asc]::after{content:"\a0\25B4"}
@@ -338,16 +419,23 @@ table table td,.cbi-value-field table td{border:0}
 
 /* ============================== dropdown (ui.Dropdown) ============================== */
 .cbi-dropdown{display:inline-flex!important;position:relative;cursor:pointer;height:auto;min-height:38px;padding:0!important;align-items:stretch}
-.cbi-dropdown:not(.btn):not(.cbi-button){min-width:220px}
+.cbi-dropdown:not(.btn):not(.cbi-button){min-width:220px;height:38px}
 .cbi-dropdown>ul{list-style:none;display:flex;overflow:hidden;width:100%;margin:0!important;padding:0}
 .cbi-dropdown.btn>ul:not(.dropdown),.cbi-dropdown.cbi-button>ul:not(.dropdown){margin:0 0 0 2px!important}
 .cbi-dropdown.btn.spinning>ul:not(.dropdown),.cbi-dropdown.cbi-button.spinning>ul:not(.dropdown){margin:0!important}
 .cbi-dropdown>.open,.cbi-dropdown>.more{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:0 10px;color:var(--ink-3);font-size:12px}
 .cbi-dropdown.btn>.open,.cbi-dropdown.cbi-button>.open{margin-left:8px;border-left:1px solid color-mix(in srgb,currentColor 30%,transparent);padding:0 0 0 10px;color:inherit}
+/* ui.Dropdown renders its arrow as a literal "▾" glyph; swap it for the select chevron. */
+.cbi-dropdown:not(.btn):not(.cbi-button)>.open{width:30px;padding:0;font-size:0;background:var(--chevron) no-repeat right 11px center}
+/* Empty multi-value dropdowns centre their placeholder; align it with input text instead. */
+.cbi-dropdown:not(.btn):not(.cbi-button)[multiple][empty]>.more{text-align:left;padding:0 11px}
 .cbi-dropdown>.more,.cbi-dropdown:not(.btn):not(.cbi-button)>ul>li[placeholder]{color:var(--ink-3);display:none}
 .cbi-dropdown>ul>li{display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;align-items:center;align-self:center;color:inherit;gap:6px}
 .cbi-dropdown>ul.dropdown>li,.cbi-dropdown:not(.btn):not(.cbi-button)>ul>li{min-height:22px;color:var(--ink);padding:7px 11px}
 .cbi-dropdown>ul>li[display]:not([display="0"]){border-left:1px solid var(--line-soft)}
+/* Selected chips are 7px-padded list items; inside the closed 38px control that made the box
+   6px taller than an empty one. Fill the row instead and centre the chip. */
+.cbi-dropdown:not(.btn):not(.cbi-button)>ul:not(.dropdown)>li{height:100%;padding:0 11px}
 .cbi-dropdown[empty]>ul{max-width:1px}
 .cbi-dropdown>ul>li>form{display:none;pointer-events:none;margin:0;padding:0}
 .cbi-dropdown>ul>li img{vertical-align:middle;margin-right:4px;max-height:1.4em;width:auto}
@@ -558,13 +646,33 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 /* diagnostics: LuCI spaces host + action with an inline 5px margin sized for its own, shorter controls */
 [data-page=admin-network-diagnostics] .td>input{display:block;width:100%;margin:0 0 8px!important}
 .breadcrumb,#modemenu{display:none!important}
-.td-footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between}
+.td-footer{margin-top:auto;padding-top:18px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between;flex:none}
 .td-footer a{color:var(--ink-3)}
 
 /* ============================== narrow content: LuCI tables & values ==============================
    Keyed to the width of the content area, not the viewport: the icon rail at 761–1100px leaves
    less room than a phone, so tables turn into cards wherever they would not fit. Modals are
    containers too, so dialogs follow their own width. */
+/* Interfaces carries four row actions plus a wide stats block. With the 2×2 action column the
+   table needs ~890px in Chinese and ~923px in English, so below 1000px it turns into card rows
+   instead of waiting for the generic 700px rule. */
+@container main (max-width:1000px){
+  [data-page=admin-network-network] .table{display:flex;flex-direction:column}
+  [data-page=admin-network-network] .tr{display:flex;flex-wrap:wrap;align-items:flex-end;border-top:1px solid var(--line-soft);padding:8px 0}
+  [data-page=admin-network-network] .table .tr:first-child{border-top:0}
+  [data-page=admin-network-network] .table .th,[data-page=admin-network-network] .table .td,[data-page=admin-network-network] .table .tr::before{flex:1 1 50%;align-self:flex-start;display:inline-block;border-top:0!important;padding:4px 6px;overflow:hidden;text-overflow:ellipsis}
+  [data-page=admin-network-network] .tr.table-titles,[data-page=admin-network-network] .tr.cbi-section-table-titles,[data-page=admin-network-network] .cbi-section-table-descr{display:none}
+  [data-page=admin-network-network] .tr[data-title]::before{display:block;flex:1 1 100%;font-size:15px;font-weight:500;padding:4px 6px}
+  [data-page=admin-network-network] .td[data-title]::before{content:attr(data-title);display:block;font-size:12px;color:var(--ink-3);font-weight:400;margin-bottom:2px;white-space:pre-line}
+  [data-page=admin-network-network] .td.cbi-section-actions{flex-basis:100%;max-width:100%;width:auto;text-align:left;padding:6px;box-sizing:border-box}
+  [data-page=admin-network-network] .td.cbi-section-actions>*{display:flex;justify-content:flex-start;width:auto;max-width:none}
+  [data-page=admin-network-network] .td.cbi-section-actions>*>form{flex:1 1 auto}
+  [data-page=admin-network-network] .td.cbi-section-actions .cbi-button{flex:1 1 auto}
+  [data-page=admin-network-network] .table .tr:hover>.td{background:none!important}
+  [data-page=admin-network-network] .td[data-name=_ifacebox]{flex-basis:40%}
+  [data-page=admin-network-network] .td[data-name=_ifacestat]{flex-basis:60%}
+}
+
 @container main (max-width:700px){
   .cbi-section,.cbi-tblsection{padding:18px 16px;border-radius:18px}
   .table,#view>.table{display:flex;flex-direction:column}
@@ -575,9 +683,12 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
   .tr.table-titles,.tr.cbi-section-table-titles,.cbi-section-table-descr{display:none}
   .tr[data-title]::before{display:block;flex:1 1 100%;font-size:15px;font-weight:500;padding:4px 6px}
   .td[data-title]::before{content:attr(data-title);display:block;font-size:12px;color:var(--ink-3);font-weight:400;margin-bottom:2px;white-space:pre-line}
-  .td.cbi-section-actions{flex-basis:100%;max-width:100%;width:auto;text-align:left;padding:6px}
-  .td.cbi-section-actions>*{display:flex;justify-content:flex-start}
+  .td.cbi-section-actions{flex-basis:100%;max-width:100%;width:auto;text-align:left;padding:6px;box-sizing:border-box}
+  .td.cbi-section-actions>*{display:flex;justify-content:flex-start;width:auto;max-width:none}
+  .td.cbi-section-actions>*>form{flex:1 1 auto}
+  .td.cbi-section-actions>*>form>.cbi-button{flex:1 1 auto}
   .td.cbi-section-actions .cbi-button{flex:1 1 auto}
+  .td.cbi-section-actions .drag-handle{flex:0 0 auto;width:24px}
   .table .tr:hover>.td{background:none!important}
   .col-1{flex:1 1 30px!important}.col-2{flex:2 2 60px!important}.col-3{flex:3 3 90px!important}.col-4{flex:4 4 120px!important}.col-5{flex:5 5 150px!important}.col-6{flex:6 6 180px!important}.col-7{flex:7 7 210px!important}.col-8{flex:8 8 240px!important}.col-9{flex:9 9 270px!important}.col-10{flex:10 10 300px!important}
   .hide-sm,.hide-xs{display:none!important}
@@ -795,9 +906,14 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-dev .meta b{font-weight:500;color:var(--ink-2)}
 @container (max-width:560px){.td-devlist .td-dev{flex-wrap:wrap}.td-dev .meta{flex-basis:100%;justify-content:flex-start;padding-left:49px}}
 .td-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
-.td-stat{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--shadow)}
-.td-stat small{display:block;color:var(--ink-3);font-size:12.5px}
+.td-stat{display:block;width:100%;margin:0;background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--shadow);text-align:left;font:inherit;color:inherit;cursor:pointer;appearance:none;transition:background .2s,border-color .2s,box-shadow .2s}
+.td-stat:hover{border-color:color-mix(in srgb,var(--ink-3) 45%,var(--line))}
+.td-stat:focus-visible{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--tint)}
+.td-stat.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.td-stat.on small{color:var(--accent-2)}
+.td-stat small{display:block;color:var(--ink-3);font-size:12.5px;transition:color .2s}
 .td-stat b{font:500 26px/1.2 var(--serif)}
+.td-dev-note{margin:0 0 14px;font-size:12.5px;line-height:1.5}
 
 /* ============================== login ============================== */
 .td-login{position:relative;min-height:100vh;display:grid;place-items:center;overflow:hidden;background:var(--canvas);padding:24px}

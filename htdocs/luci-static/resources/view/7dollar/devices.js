@@ -24,12 +24,26 @@ return view.extend({
 				<p class="td-sub" id="td-dsum">&nbsp;</p>
 			</div>
 			<a class="btn" href="${L.url('admin/network/dhcp')}">${icon('lock')}${esc(T('给设备固定 IP', 'Reserve an IP'))}</a></div>
-			<div class="td-stats" id="td-dstats"></div>
-			<section class="td-card"><div class="td-card-h"><h3>${esc(T('在线', 'Online'))}</h3></div><div class="td-devlist" id="td-on"></div></section>
-			<section class="td-card" style="margin-top:18px" id="td-off-card"><div class="td-card-h"><h3>${esc(T('最近连接过', 'Recently seen'))}</h3><span class="td-muted">${esc(T('有 IP 租约，当前离线', 'Leased, currently offline'))}</span></div><div class="td-devlist" id="td-off"></div></section>
+			<div class="td-stats" id="td-dstats" role="group" aria-label="${esc(T('按连接状态筛选', 'Filter devices'))}">
+				<button type="button" class="td-stat on" data-filter="online" aria-controls="td-dev-list" aria-pressed="true"><small>${esc(T('在线', 'Online'))}</small><b>0</b></button>
+				<button type="button" class="td-stat" data-filter="wifi" aria-controls="td-dev-list" aria-pressed="false"><small>Wi‑Fi</small><b>0</b></button>
+				<button type="button" class="td-stat" data-filter="wired" aria-controls="td-dev-list" aria-pressed="false"><small>${esc(T('有线', 'Wired'))}</small><b>0</b></button>
+				<button type="button" class="td-stat" data-filter="recent" aria-controls="td-dev-list" aria-pressed="false"><small>${esc(T('最近连接过', 'Recently seen'))}</small><b>0</b></button>
+			</div>
+			<section class="td-card">
+				<div class="td-dev-note td-muted" id="td-dev-note" hidden></div>
+				<div class="td-devlist" id="td-dev-list"></div>
+			</section>
 		</div>`);
 
 		this.root = root;
+		this.filter = 'online';
+		root.querySelector('#td-dstats').addEventListener('click', ev => {
+			const btn = ev.target.closest('[data-filter]');
+			if (!btn) return;
+			this.filter = btn.dataset.filter;
+			this.paint(this.list);
+		});
 		this.paint(list);
 		poll.add(() => td.clients().then(l => this.paint(l)), 5);
 		return root;
@@ -54,21 +68,37 @@ return view.extend({
 	},
 
 	paint(list) {
+		this.list = list;
+
 		const on = list.filter(c => c.online), off = list.filter(c => !c.online);
-		const wifi = on.filter(c => c.conn == 'wifi').length;
+		const wifi = on.filter(c => c.conn == 'wifi');
+		const wired = on.filter(c => c.conn != 'wifi');
 		const $ = id => this.root.querySelector('#' + id);
 
 		$('td-dsum').textContent = on.length
 			? T(`现在有 ${on.length} 台设备在线。名字来自设备自己上报的主机名。`, `${on.length} device${on.length == 1 ? '' : 's'} online right now.`)
 			: T('现在没有设备在线。', 'No devices online right now.');
 
-		$('td-dstats').innerHTML = [
-			[ T('在线', 'Online'), on.length ], [ 'Wi‑Fi', wifi ], [ T('有线', 'Wired'), on.length - wifi ], [ T('最近连接过', 'Recently seen'), off.length ]
-		].map(([ k, v ]) => `<div class="td-stat"><small>${esc(k)}</small><b>${v}</b></div>`).join('');
+		const counts = { online: on.length, wifi: wifi.length, wired: wired.length, recent: off.length };
+		Object.entries(counts).forEach(([ key, count ]) => {
+			const btn = $('td-dstats').querySelector(`[data-filter="${key}"]`);
+			btn.querySelector('b').textContent = count;
+			btn.classList.toggle('on', this.filter == key);
+			btn.setAttribute('aria-pressed', String(this.filter == key));
+		});
 
-		$('td-on').innerHTML = on.length ? on.map(c => this.row(c)).join('') : `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`;
-		$('td-off').innerHTML = off.map(c => this.row(c)).join('');
-		$('td-off-card').hidden = !off.length;
+		const recent = this.filter == 'recent';
+		const rows = this.filter == 'wifi' ? wifi
+			: this.filter == 'wired' ? wired
+			: recent ? off : on;
+		const empty = this.filter == 'wifi' ? T('现在没有 Wi‑Fi 设备在线', 'No Wi‑Fi devices online')
+			: this.filter == 'wired' ? T('现在没有有线设备在线', 'No wired devices online')
+			: recent ? T('没有离线设备', 'No offline devices')
+			: T('现在没有设备在线', 'No devices online');
+
+		$('td-dev-note').hidden = !(recent && off.length);
+		$('td-dev-note').textContent = recent && off.length ? T('有 IP 租约，当前离线', 'Leased, currently offline') : '';
+		$('td-dev-list').innerHTML = rows.length ? rows.map(c => this.row(c)).join('') : `<div class="td-empty-row">${esc(empty)}</div>`;
 	},
 
 	handleSave: null,
