@@ -52,8 +52,8 @@ return view.extend({
 
 		const fwd = Object.values(fw || {})[0] || {};
 		const tags = [];
-		if (fwd.flow_offloading_hw == '1') tags.push(T('硬件流量卸载', 'Hardware offload'));
-		else if (fwd.flow_offloading == '1') tags.push(T('软件流量卸载', 'Software offload'));
+		this.s.offload = fwd.flow_offloading_hw == '1' ? T('硬件流量卸载', 'Hardware offload')
+			: fwd.flow_offloading == '1' ? T('软件流量卸载', 'Software offload') : '';
 		if (/^Y/.test(wed || '')) tags.push(T('无线加速 WED', 'Wireless offload (WED)'));
 		if (/bbr/.test(cc || '')) tags.push(T('BBR 拥塞控制', 'BBR congestion control'));
 		this.s.tags = tags;
@@ -78,8 +78,6 @@ return view.extend({
 		const rates = (mode == 'side' ? rate('down', T('经过本机', 'Through this box'))
 		                              : rate('down', T('下载', 'Download')) + rate('up', T('上传', 'Upload'), ' up'))
 			+ `<div class="td-rate boot"><small>${esc(T('本次开机', 'Since boot'))}</small><span id="td-boot">—</span></div>`;
-		const os = board.release ? `${board.release.distribution} ${board.release.version}` : 'OpenWrt';
-
 		const rateCard = card('rate', 'k-rate', `
 					<div class="td-card-h"><h3>${esc(T('实时速率', 'Live traffic'))}</h3><span class="td-muted">${esc(T('过去 2 分钟', 'Last 2 minutes'))}</span></div>
 					<div class="td-rates">${rates}</div>
@@ -96,7 +94,7 @@ return view.extend({
 					<div class="td-card-h"><h3>Wi‑Fi</h3><a href="${L.url('admin/network/wireless')}">${esc(T('设置', 'Settings'))}${icon('chev')}</a></div>
 					<div id="td-wifi"></div>`) : '' ],
 			[ 'sys', card('sys', 'k-sys', `
-					<div class="td-card-h"><h3>${esc(T('路由器状态', 'Router status'))}</h3><span class="td-muted">${esc(os)}</span></div>
+					<div class="td-card-h"><h3>${esc(T('路由器状态', 'Router status'))}</h3>${this.s.offload ? `<span class="td-tag">${icon('check')}${esc(this.s.offload)}</span>` : ''}</div>
 					<div class="td-rings">
 						${this.ring('cpu', T('处理器', 'CPU'))}
 						${this.ring('mem', T('内存', 'Memory'))}
@@ -148,7 +146,7 @@ return view.extend({
 						<dl class="td-fact-row">
 							<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd><dd class="td-fact-sub" id="td-wanip6" hidden></dd></div>
 							<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
-							<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
+							<div><dt class="td-fact-state"><span class="td-dot" id="td-wan-dot"></span>${esc(T('已连接', 'Connected for'))}</dt><dd id="td-wanup">—</dd></div>
 						</dl>
 					</div>
 				</section>
@@ -175,7 +173,19 @@ return view.extend({
 
 		if (showOC) this.loadOC();
 
-		requestAnimationFrame(() => requestAnimationFrame(() => this.paintRings()));
+		requestAnimationFrame(() => requestAnimationFrame(() => { this.paintRings(); this.layoutPair(); }));
+		if (document.fonts && document.fonts.ready)
+			document.fonts.ready.then(() => { if (root.isConnected) this.layoutPair(); });
+
+		this.onResize = () => {
+			if (!root.isConnected) {
+				window.removeEventListener('resize', this.onResize);
+				return;
+			}
+			cancelAnimationFrame(this.raf);
+			this.raf = requestAnimationFrame(() => this.layoutPair());
+		};
+		window.addEventListener('resize', this.onResize);
 
 		return root;
 	},
@@ -212,6 +222,7 @@ return view.extend({
 		const ok = !!(w && w.up), chip = this.$('td-conn-chip');
 		this.$('td-up-node').classList.toggle('bad', !ok);
 		this.$('td-link-up').classList.toggle('down', !ok);
+		this.$('td-wan-dot').classList.toggle('bad', !ok);
 		if (chip.dataset.ok != String(ok)) {
 			chip.dataset.ok = ok;
 			chip.className = ok ? 'td-chip' : 'td-chip bad';
@@ -227,6 +238,7 @@ return view.extend({
 
 		if (!ok) {
 			this.set('td-proto', T('没有连接', 'Not connected'));
+			this.set('td-wanup', '—');
 			return;
 		}
 
@@ -259,6 +271,48 @@ return view.extend({
 			facts.querySelectorAll('.td-fact-uplink').forEach(n => n.remove());
 			facts.insertAdjacentHTML('beforeend', html);
 			this.s.uplinks = html;
+		}
+	},
+
+	/* The rate card keeps the connection card's height without its secondary dial-up rows. The
+	 * lower right column is pulled up under it, so the cards below start right after the rate
+	 * card instead of waiting for the taller connection card. */
+	layoutPair() {
+		const root = this.root;
+		if (!root || !root.isConnected) return;
+		const pair = root.querySelector('.td-pair');
+		const conn = root.querySelector('[data-card="conn"]');
+		const rate = root.querySelector('[data-card="rate"]');
+		const cols = root.querySelector('.td-cols');
+		const right = cols && cols.children.length > 1 ? cols.lastElementChild : null;
+		if (!pair || !conn || !rate) return;
+
+		const wide = getComputedStyle(pair).gridTemplateColumns.trim().split(/\s+/).length > 1;
+		if (!wide) {
+			rate.style.height = '';
+			if (right) right.style.marginTop = '';
+			return;
+		}
+
+		const facts = conn.querySelector('.td-facts');
+		const gap = facts ? parseFloat(getComputedStyle(facts).rowGap) || 0 : 0;
+		let extra = 0;
+		(facts ? [ ...facts.querySelectorAll('.td-fact-uplink') ] : []).forEach(row => {
+			let h = 0;
+			for (const cell of row.children) h = Math.max(h, cell.getBoundingClientRect().height);
+			extra += h + gap;
+		});
+
+		const connH = conn.getBoundingClientRect().height;
+		const min = Math.max(0, connH - extra);
+		rate.style.height = '';
+		const natural = rate.getBoundingClientRect().height;
+		const rateH = Math.round(Math.max(min, natural));
+		rate.style.height = rateH + 'px';
+
+		if (right) {
+			const shift = Math.max(0, Math.round(connH - rateH));
+			right.style.marginTop = shift ? `-${shift}px` : '';
 		}
 	},
 
@@ -467,6 +521,7 @@ return view.extend({
 			if (!!(wan && wan.up) != !!was) { this.greet(); }
 			this.paintWifi(wifi);
 			this.paintStatic();
+			this.layoutPair();
 			this.paintDisk();
 			this.pingGateway();
 			return Promise.all([ this.refreshClients(), ++this.ticks % 3 ? null : this.refreshPorts() ]);

@@ -725,7 +725,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-pair,.td-cols{display:grid;gap:18px;min-width:0}
 .td-col{display:flex;flex-direction:column;gap:18px;min-width:0}
 @container main (min-width:640px){.td-cols{grid-template-columns:1fr 1fr;align-items:start}.td-col:only-child{grid-column:1/-1}}
-@container main (min-width:980px){.td-pair,.td-cols{grid-template-columns:7fr 5fr}.td-pair>:only-child{grid-column:1/-1}}
+@container main (min-width:980px){.td-pair,.td-cols{grid-template-columns:7fr 5fr}.td-pair>:only-child{grid-column:1/-1}.td-pair .k-conn,.td-pair .k-rate{align-self:start}}
 @container main (max-width:639.98px){
   .td-cols{display:flex;flex-direction:column}.td-col{display:contents}.td-col>.td-card{order:var(--i)}
 }
@@ -776,10 +776,10 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 }
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
-/* secondary dial-ups as their own facts row; the state dot sits with the connected label */
-.td-fact-uplink .td-fact-state{display:flex;align-items:center;gap:6px}
-.td-fact-uplink .td-dot{background:var(--ok)}
-.td-fact-uplink .td-dot.bad{background:var(--bad)}
+/* the state dot sits with the connected label; green while up, red when down */
+.td-fact-state{display:flex;align-items:center;gap:6px}
+.td-fact-state .td-dot{background:var(--ok)}
+.td-fact-state .td-dot.bad{background:var(--bad)}
 .td-facts .td-fact-sub{font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* rate */
