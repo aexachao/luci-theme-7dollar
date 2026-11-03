@@ -9,6 +9,7 @@
   --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei UI","Noto Sans SC","Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
   --ease:cubic-bezier(.2,.7,.2,1);--fast:.18s;--base:.28s;--slow:.45s;--data:.8s; /* motion: feedback / state change / entrance / data */
+  --chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23958F83' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E");
   --r-lg:20px;--r-md:14px;--r-sm:10px;
   --ok:#5F8A55;--ok-soft:#E1EAD8;--warn:#B98330;--warn-soft:#F4E7CF;--bad:#C0533E;--bad-soft:#F6DDD5;
   --shadow:0 1px 1px rgba(20,20,20,.03),0 10px 30px -18px rgba(20,20,20,.18);
@@ -79,6 +80,10 @@ h6{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06
 .cbi-map-descr,.cbi-tab-descr{color:var(--ink-2);font-size:14px;margin:0 0 20px;max-width:76ch}
 .cbi-section-descr{color:var(--ink-3);font-size:13px;margin:-4px 0 12px;max-width:76ch}
 .cbi-section-descr:empty,.cbi-map-descr:empty{display:none}
+.td-desc{margin:-4px 0 12px}.td-desc>summary{display:inline-flex;align-items:center;gap:2px;list-style:none;cursor:pointer;color:var(--ink-3);font-size:13px;transition:color var(--fast) var(--ease)}
+.td-desc>summary::-webkit-details-marker{display:none}.td-desc>summary:hover{color:var(--ink)}
+.td-desc>summary .i{width:14px;height:14px;transform:rotate(90deg);transition:transform var(--base) var(--ease)}.td-desc[open]>summary .i{transform:rotate(-90deg)}
+.td-desc>*:not(summary){margin:6px 0 0;animation:td-fade var(--base) var(--ease)}
 
 /* ============================== app shell ============================== */
 .td-app{display:grid;grid-template-columns:224px minmax(0,1fr);grid-template-rows:60px minmax(0,1fr);grid-template-areas:"top top" "side main";min-height:100vh}
@@ -367,6 +372,7 @@ fieldset{min-width:0}
 /* Native CBI tabs: take inactive panes out of flow entirely. Collapsing them to height:0
    kept their margins in play, so the content shifted down after switching tabs. */
 [data-tab-title]:not([data-tab-active="true"]){display:none}
+[data-tab-active="true"]{animation:td-fade var(--base) var(--ease)}
 [data-tab-group]>[data-tab-title]{margin-top:0}
 .tab-content>.tab-pane,.tab-content>div{display:none}
 .tab-content>.active{display:block}
@@ -395,7 +401,7 @@ fieldset{min-width:0}
 /* Row actions stay on one line, four-button interface rows included. A plain flex row without
    max-content let the table squeeze this cell down to ~50px and stack the buttons; the table
    then froze that collapsed width into the column (form.js measures it once). */
-.td.cbi-section-actions{text-align:right;white-space:normal}
+:is(.th,.td).cbi-section-actions{text-align:right;white-space:normal}
 /* form.js freezes each action column to the div's measured width. With border-box that width
    includes the cell padding, so the buttons spilled past the row highlight; content-box keeps
    the measured width and the padding additive. Card mode below resets it. */
@@ -405,7 +411,7 @@ fieldset{min-width:0}
 .td.cbi-section-actions .cbi-button{min-height:32px;padding:0 12px;font-size:13px;white-space:nowrap;flex:none}
 .td.cbi-section-actions>*>form>.cbi-button{flex:1 1 auto}
 /* The sort handle is a cbi-button too; render it as a compact grip, not a third button. */
-.td.cbi-section-actions .drag-handle{width:24px;min-height:32px;padding:0;border:0;background:none;box-shadow:none;color:var(--ink-3);font-size:15px}
+.td.cbi-section-actions .drag-handle{width:24px;min-height:32px;padding:0;border:0;background:none;box-shadow:none;color:var(--ink-3);font-size:15px;cursor:grab}
 .td.cbi-section-actions .drag-handle:hover{background:var(--hover);color:var(--ink);border-radius:8px}
 .td>input[type=text],.td>input[type=password],.td>select,.td>.cbi-dropdown:not(.btn):not(.cbi-button){width:100%}
 th[data-sortable-row]{cursor:pointer}
@@ -832,8 +838,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-kv dd{margin:2px 0 0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .td-kv dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .td-kv dd+dd{font-size:12px;color:var(--ink-3);margin-top:1px}
-.td-kv .off dd,.td-kv dd.warn+dd{color:var(--ink-3)}
-.td-kv dd.warn{color:var(--warn)}
+.td-kv .off dd{color:var(--ink-3)}
 .td-card>.td-kv:last-child,#td-wifi>.td-kv,#td-ports{margin-bottom:0}
 /* storage */
 .td-meter+.td-meter{margin-top:16px}
@@ -844,7 +849,7 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-bar.full i{background:var(--warn)}
 
 /* system rings */
-.td-rings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.td-rings{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:14px}
 .td-ring{display:flex;align-items:center;gap:12px;min-width:0}
 .td-ring svg{width:58px;height:58px;transform:rotate(-90deg);flex:none}
 .td-ring circle{fill:none;stroke-width:5}
@@ -925,8 +930,8 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 .td-stat{display:block;width:100%;margin:0;background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--shadow);text-align:left;font:inherit;color:inherit;cursor:pointer;appearance:none;transition:background .2s,border-color .2s,box-shadow .2s}
 .td-stat:hover{border-color:color-mix(in srgb,var(--ink-3) 45%,var(--line))}
 .td-stat:focus-visible{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--tint)}
-.td-stat.on{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
-.td-stat.on small{color:var(--accent-2)}
+.td-stat.on,.td-stat[aria-pressed=true]{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.td-stat.on small,.td-stat[aria-pressed=true] small{color:var(--accent-2)}
 .td-stat small{display:block;color:var(--ink-3);font-size:12.5px;transition:color .2s}
 .td-stat b{font:500 26px/1.2 var(--serif)}
 .td-dev-note{margin:0 0 14px;font-size:12.5px;line-height:1.5}

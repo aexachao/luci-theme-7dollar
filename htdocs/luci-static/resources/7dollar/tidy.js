@@ -127,6 +127,14 @@ function scan(view) {
 		mark(s);
 	});
 
+	/* long section help (DHCP, firewall, ...) folds behind "说明" instead of a wall of text above the form */
+	view.querySelectorAll('.cbi-section-descr').forEach(d => {
+		if (d.parentNode.matches('details') || d.textContent.trim().length <= 160) return;
+		const box = E('details', { class: 'td-desc' }, E('summary', {}, [ T('说明', 'Help'), td.html(icon('chev')) ]));
+		d.replaceWith(box);
+		box.append(d);
+	});
+
 	out.forEach(arm);
 }
 
@@ -202,7 +210,8 @@ function flip(sec) {
 return baseclass.extend({
 	__init__() {
 		const view = document.getElementById('view');
-		if (!view) return;
+		/* the theme's own pages are already plain; the home page repaints every 2 s and need not be rescanned */
+		if (!view || /^admin-(home|clients|apps|system-appearance)$/.test(document.body.dataset.page || '')) return;
 		let queued = false;
 		const run = () => { queued = false; scan(view); };
 		new MutationObserver(() => queued || (queued = true, requestAnimationFrame(run)))

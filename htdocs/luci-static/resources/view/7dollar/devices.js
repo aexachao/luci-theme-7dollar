@@ -3,7 +3,7 @@
 'require poll';
 'require 7dollar.common as td';
 
-/* All devices: online (Wi-Fi + wired) and recently seen DHCP clients. */
+/* All devices: online (Wi-Fi + wired) and recently seen DHCP clients. The summary tiles filter the list. */
 
 const T = td.T, icon = td.icon, esc = td.esc;
 
@@ -62,17 +62,18 @@ return view.extend({
 			if (c.link) meta.unshift(`<span><b>${Math.round(c.link)} Mbps</b></span>`);
 			if (c.since) meta.push(`<span>${esc(T('已连接 ', 'Connected ') + td.duration(c.since))}</span>`);
 		}
-		else sub = T('有线连接', 'Wired');
+		else sub = td.connName(c);
 
 		return `<div class="td-dev"><div class="td-av">${icon(c.kind)}</div><div class="nm"><b>${esc(c.display)}</b><small>${esc(sub)}</small></div><div class="meta">${meta.join('')}</div></div>`;
 	},
 
 	paint(list) {
 		this.list = list;
-
 		const on = list.filter(c => c.online), off = list.filter(c => !c.online);
 		const wifi = on.filter(c => c.conn == 'wifi');
 		const wired = on.filter(c => c.conn != 'wifi');
+		/* a side router sees the whole LAN on its port, so that tile is 局域网, not 有线 */
+		const lan = list.some(c => c.conn == 'lan');
 		const $ = id => this.root.querySelector('#' + id);
 
 		$('td-dsum').textContent = on.length
@@ -82,6 +83,7 @@ return view.extend({
 		const counts = { online: on.length, wifi: wifi.length, wired: wired.length, recent: off.length };
 		Object.entries(counts).forEach(([ key, count ]) => {
 			const btn = $('td-dstats').querySelector(`[data-filter="${key}"]`);
+			if (key == 'wired') btn.querySelector('small').textContent = lan ? T('局域网', 'LAN') : T('有线', 'Wired');
 			btn.querySelector('b').textContent = count;
 			btn.classList.toggle('on', this.filter == key);
 			btn.setAttribute('aria-pressed', String(this.filter == key));

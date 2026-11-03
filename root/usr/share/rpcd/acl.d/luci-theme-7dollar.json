@@ -30,7 +30,7 @@
 				"/sys/devices/*/thermal_zone*/temp": [ "read" ],
 				"/sys/devices/*/hwmon*/name": [ "read" ],
 				"/sys/devices/*/hwmon*/temp1_input": [ "read" ],
-				"/sys/module/mt7915e/parameters/wed_enable": [ "read" ],
+				"/sys/module/mt79*e/parameters/wed_enable": [ "read" ],
 				"/bin/ping": [ "exec" ]
 			},
 			"uci": [ "7dollar", "firewall", "luci", "openclash" ]

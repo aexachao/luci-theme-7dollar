@@ -25,7 +25,7 @@ return view.extend({
 			return `<a class="td-app-t" href="${L.url(p.path)}" style="animation-delay:${Math.min(i, 10) * 30}ms"><div class="td-av">${icon(td.appIcon(p.path))}</div><div><b>${esc(p.title)}</b><small>${esc(cat)}</small></div></a>`;
 		}).join('');
 
-		const add = tree.children.admin.children.system && tree.children.admin.children.system.children['package-manager'];
+		const add = td.software(tree);
 
 		return td.html(`<div class="td-appsview">
 			<div class="td-head"><div>
@@ -35,7 +35,7 @@ return view.extend({
 				                                     : T('还没有安装插件。', 'No plugins installed yet.'))}</p>
 			</div></div>
 			<div class="td-apps">${tiles}
-				${add ? `<a class="td-app-t add" href="${L.url('admin/system/package-manager')}"><div class="td-av">${icon('plus')}</div><div><b style="color:var(--ink-2)">${esc(T('安装更多应用', 'Get more apps'))}</b><small>${esc(T('前往软件包', 'Open Software'))}</small></div></a>` : ''}
+				${add ? `<a class="td-app-t add" href="${L.url('admin/' + add)}"><div class="td-av">${icon('plus')}</div><div><b style="color:var(--ink-2)">${esc(T('安装更多应用', 'Get more apps'))}</b><small>${esc(T('前往软件包', 'Open Software'))}</small></div></a>` : ''}
 			</div>
 		</div>`);
 	},

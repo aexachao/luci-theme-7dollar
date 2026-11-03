@@ -30,7 +30,7 @@ return view.extend({
 			td.wan(),
 			ui.menu.load().then(menu => Promise.all([ menu, td.menuHas(menu, 'network/wireless') ? td.wifiInfo() : null ])),
 			td.uciType('firewall', 'defaults'),
-			td.readFile('/sys/module/mt7915e/parameters/wed_enable'),
+			Promise.all([ 'mt7915e', 'mt7996e' ].map(m => td.readFile(`/sys/module/${m}/parameters/wed_enable`))).then(l => l.find(Boolean)),   // Wi-Fi 6 / Wi-Fi 7 MediaTek
 			td.readFile('/proc/sys/net/ipv4/tcp_congestion_control'),
 			td.readFile('/proc/stat'),
 			td.readFile('/proc/net/dev')
@@ -41,6 +41,7 @@ return view.extend({
 		const hidden = String(conf.hidden_cards || '').split(/[\s,]+/).filter(Boolean);
 		const showOC = conf.plugin_openclash == '1' && td.menuHas(menu, 'services/openclash');
 		const mode = wan && wan.up ? wan.mode : 'wan';
+		const software = td.software(menu);
 		/* wifiInfo() always returns an object; only actual radios mean the box has Wi-Fi. */
 		const hasWifi = !!(wifi && Object.keys(wifi.radios || {}).length);
 
@@ -122,7 +123,7 @@ return view.extend({
 					<div class="td-card-h"><h3>${esc(T('常用操作', 'Quick actions'))}</h3></div>
 					<div class="td-acts">
 						${this.act('admin/system/flash', 'backup', T('备份配置', 'Back up'))}
-						${this.act('admin/system/package-manager', 'box', T('软件包', 'Software'))}
+						${software ? this.act('admin/' + software, 'box', T('软件包', 'Software')) : ''}
 						${this.act('admin/network/diagnostics', 'pulse', T('网络诊断', 'Diagnostics'))}
 						${this.act('admin/status/logs', 'doc', T('查看日志', 'Logs'))}
 					</div>`) ]
@@ -144,7 +145,7 @@ return view.extend({
 					<div class="td-topo">${topo}</div>
 					<div class="td-facts" id="td-facts">
 						<div class="td-facts-view" id="td-facts-view">
-							<dl class="td-fact-row td-fact-page td-fact-main">
+							<dl class="td-fact-row td-fact-page">
 								<div><dt>${esc(mode == 'side' ? T('本机地址', 'Address') : T('上网地址', 'WAN address'))}</dt><dd id="td-wanip">—</dd><dd class="td-fact-sub" id="td-wanip6" hidden></dd></div>
 								<div><dt>${esc(T('网关延迟', 'Gateway latency'))}</dt><dd id="td-ping">—</dd></div>
 								<div><dt>DNS</dt><dd id="td-dns">—</dd></div>
@@ -384,12 +385,14 @@ return view.extend({
 	/* ---------- ports and storage: one port query every 30 s, storage comes with the system info we already poll ---------- */
 
 	refreshPorts() {
-		if (!this.$('td-ports')) return Promise.resolve();
+		const box = this.$('td-ports');
+		if (!box) return Promise.resolve();
 		return td.ports(this.s.wan).then(list => {
+			if (!list.length) return box.closest('.td-card').remove();   // nothing the kernel can tell us (swconfig)
 			const lan = list.filter(p => p.role == 'LAN');
 			let k = 0;
 			this.set('td-ports-n', T(`${list.filter(p => p.up).length} / ${list.length} 已接网线`, `${list.filter(p => p.up).length} of ${list.length} in use`));
-			this.$('td-ports').innerHTML = list.map(p => {
+			box.innerHTML = list.map(p => {
 				const m = /^lan(\d+)$/.exec(p.name);
 				const name = p.role != 'LAN' ? p.role : m ? 'LAN ' + m[1] : lan.length > 1 ? 'LAN ' + ++k : 'LAN';
 				const speed = !p.up ? T('未接网线', 'Unplugged') : p.speed > 0 ? (p.speed >= 1000 ? p.speed / 1000 + ' Gbps' : p.speed + ' Mbps') : T('已连接', 'Connected');
@@ -426,10 +429,10 @@ return view.extend({
 			const top = online.slice(0, 6);
 			box.innerHTML = top.length ? top.map(c => {
 				const [ sig ] = td.signal(c.signal);
-				const sub = c.conn == 'wifi' ? `Wi‑Fi ${td.bandName(c.band)} · ${sig}` : T('有线连接', 'Wired') + (c.ip && c.ip != c.display ? ' · ' + c.ip : '');
+				const sub = c.conn == 'wifi' ? `Wi‑Fi ${td.bandName(c.band)} · ${sig}` : td.connName(c) + (c.ip && c.ip != c.display ? ' · ' + c.ip : '');
 				const rt = c.conn == 'wifi' && c.link
 					? `${Math.round(c.link)} Mbps<div class="td-bar"><i style="width:${td.quality(c.signal)}%"></i></div>`
-					: `${esc(T('有线', 'Wired'))}<div class="td-bar"><i style="width:100%"></i></div>`;
+					: `${esc(c.conn == 'lan' ? T('局域网', 'LAN') : T('有线', 'Wired'))}<div class="td-bar"><i style="width:100%"></i></div>`;
 				return `<div class="td-dev"><div class="td-av">${icon(c.kind)}</div><div class="nm"><b>${esc(c.display)}</b><small>${esc(sub)}</small></div><div class="rt" title="${esc(T('连接速率 · 信号强度', 'Link rate · signal'))}">${rt}</div></div>`;
 			}).join('') + (online.length > 6 ? `<a class="td-more" href="${L.url('admin/clients')}">${esc(T(`还有 ${online.length - 6} 台设备`, `${online.length - 6} more`))}</a>` : '')
 			: `<div class="td-empty-row">${esc(T('现在没有设备在线', 'No devices online'))}</div>`;
@@ -533,6 +536,7 @@ return view.extend({
 				this.s.cpuPct = 100 * (1 - (c.idle - this.s.cpu.idle) / (c.total - this.s.cpu.total));
 			if (c) this.s.cpu = c;
 			if (temp != null) this.s.temp = temp;
+			else if (this.s.temp == null) this.$('td-ring-temp')?.closest('.td-ring').remove();   // no usable sensor (VMs, some x86)
 			this.sample(dev);
 		});
 	},
@@ -558,9 +562,12 @@ return view.extend({
 			this.set('td-lat', w && w.up ? T('已连接', 'Connected') : T('未连接', 'Offline'));
 			return Promise.resolve();
 		}
+		/* a gateway that never answers ping (many ISP modems) is retried once a minute, not every 10 s */
+		if (this.s.miss >= 3 && this.ticks % 6) return Promise.resolve();
 		return L.resolveDefault(fs.exec('/bin/ping', [ '-c', '1', '-W', '1', w.gw ]), {}).then(r => {
 			const m = String((r || {}).stdout || '').match(/time[=<]([\d.]+)/);
 			const v = m ? (+m[1] < 1 ? '<1' : Math.round(+m[1])) + ' ms' : null;
+			this.s.miss = v ? 0 : (this.s.miss || 0) + 1;
 			this.set('td-ping', v || T('无响应', 'No reply'));
 			this.set('td-lat', v ? T('延迟 ', 'Latency ') + v : T('已连接', 'Connected'));
 		});

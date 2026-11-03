@@ -54,7 +54,7 @@ const GROUPS = [
 	  prefix: [ 'admin/services', 'admin/vpn', 'admin/nas', 'admin/docker', 'admin/statistics' ] },
 	{ id: 'system', icon: 'gear', label: T('系统', 'System'), short: T('更多', 'More'),
 	  pages: [ 'admin/system/system', 'admin/system/appearance', 'admin/status/overview', 'admin/status/realtime', 'admin/status/logs',
-	           'admin/system/package-manager', 'admin/system/flash', 'admin/system/crontab', 'admin/system/startup', 'admin/status/processes',
+	           'admin/system/package-manager', 'admin/system/opkg', 'admin/system/flash', 'admin/system/crontab', 'admin/system/startup', 'admin/status/processes',
 	           'admin/system/mounts', 'admin/system/leds', 'admin/system/reboot' ],
 	  prefix: [ 'admin/system', 'admin/status' ] }
 ];
@@ -82,6 +82,7 @@ const LABELS = {
 	'admin/status/logs': T('日志', 'Logs'),
 	'admin/status/processes': T('进程', 'Processes'),
 	'admin/system/package-manager': T('软件包', 'Software'),
+	'admin/system/opkg': T('软件包', 'Software'),
 	'admin/system/flash': T('备份与升级', 'Backup & upgrade'),
 	'admin/system/startup': T('启动项', 'Startup'),
 	'admin/system/crontab': T('计划任务', 'Scheduled tasks'),
@@ -136,6 +137,11 @@ function menuHas(tree, path) {
 	let n = tree;
 	for (const k of ('admin/' + path).split('/')) n = n && n.children && n.children[k];
 	return !!n;
+}
+
+/* The software page: package-manager since 24.10, opkg on 23.05; null when neither app is installed. */
+function software(tree) {
+	return [ 'system/package-manager', 'system/opkg' ].find(p => menuHas(tree, p)) || null;
 }
 
 function flatten(tree) {
@@ -325,10 +331,10 @@ function kind(name) {
 	name = name || '';
 	if (/watch/i.test(name)) return 'watch';
 	if (/ipad|pad|tab|kindle/i.test(name)) return 'tablet';
+	if (/book\d*\b|laptop|thinkpad|surface/i.test(name)) return 'laptop';   // MacBook, MateBook, Vivobook, Galaxy Book3
 	if (/iphone|pixel|android|phone|oppo|vivo|xiaomi|redmi|huawei|honor|galaxy|oneplus|realme|meizu|nokia|mi-/i.test(name)) return 'phone';
-	if (/tv|roku|chromecast|firestick|shield|box/i.test(name)) return 'tv';
-	if (/macbook|laptop|notebook|thinkpad|surface/i.test(name)) return 'laptop';
-	if (/mac|imac|mini|pc|desktop|win|ubuntu|linux|nas|server/i.test(name)) return 'desktop';
+	if (/tv\b|roku|chromecast|fire-?stick|\bshield\b|x?box\b/i.test(name)) return 'tv';
+	if (/\b(mac|imac|mini|pc|desktop|win|ubuntu|linux|nas|server)\b/i.test(name)) return 'desktop';
 	return 'devices';
 }
 
@@ -405,8 +411,10 @@ function clients(wifi, uplink) {
 	]).then(([ leases, hints, wi, arp, up ]) => {
 		up = up || {};
 		/* neighbours on the uplink side (a main router's WAN port, a repeater's Wi-Fi link) are not
-		 * our devices; a side router's uplink is the LAN itself, so there only the gateway is skipped */
-		const skip = up.mode == 'side' ? [] : [ up.device, up.port ];
+		 * our devices; a side router's uplink is the LAN itself, so there only the gateway is skipped.
+		 * What a side router sees on its LAN port may well be a phone on the main router's Wi-Fi,
+		 * so those count as "lan" rather than "wired". */
+		const side = up.mode == 'side', skip = side ? [] : [ up.device, up.port ];
 		const byMac = {};
 		const get = mac => {
 			mac = String(mac).toUpperCase();
@@ -448,7 +456,7 @@ function clients(wifi, uplink) {
 				return;
 			const c = get(f[3]);
 			c.online = true;
-			c.conn = 'wired';
+			c.conn = side ? 'lan' : 'wired';
 			c.ip = c.ip || f[0];
 		});
 
@@ -530,8 +538,9 @@ function wan() {
 }
 
 /* Physical Ethernet ports in use: bridge members plus the ports of every uplink (WAN, IPTV,
- * backup WAN), each tagged with the interface that owns it. A VLAN on top (eth0.7, wan.10)
- * counts as its port. */
+ * backup WAN), each tagged with the interface that owns it. Switch ports are "dsa" devices, a
+ * plain NIC is "ethernet"; a VLAN on top (eth0.7, wan.10) counts as its port. Empty on swconfig
+ * boxes, where the kernel only sees the CPU port. */
 function ports(up) {
 	const base = n => String(n || '').split('.')[0];
 	const roles = {}, rank = {};
@@ -542,11 +551,15 @@ function ports(up) {
 	if (up && up.mode != 'side') { add(up.device, 'WAN', 0); add(up.port, 'WAN', 0); }
 	((up && up.uplinks) || []).forEach((u, i) => { add(u.device, u.name, i + 1); add(u.port, u.name, i + 1); });
 	return L.resolveDefault(callDevices(), {}).then(devs => Object.values(devs || {})
-		.filter(d => d.devtype == 'ethernet' && !d.wireless && d.name.indexOf('.') < 0 && !/^(docker|veth|br-)/.test(d.name)
+		.filter(d => /^(ethernet|dsa)$/.test(d.devtype) && !d.wireless && d.name.indexOf('.') < 0 && !/^(docker|veth|br-)/.test(d.name)
 		          && (d.master || roles[d.name]))
 		.map(d => ({ name: d.name, role: roles[d.name] || 'LAN', up: !!(d.link || {}).carrier, speed: +(d.link || {}).speed || 0 }))
 		.sort((a, b) => ((rank[a.name] != null ? rank[a.name] : 100) - (rank[b.name] != null ? rank[b.name] : 100))
 			|| a.name.localeCompare(b.name, 'en', { numeric: true })));
+}
+
+function connName(c) {
+	return c.conn == 'lan' ? T('局域网', 'LAN') : T('有线连接', 'Wired');
 }
 
 const DNS_NAMES = {
@@ -589,9 +602,9 @@ return baseclass.extend({
 	active: /\/7dollar$/.test(L.env.media || ''),
 	PALETTES: PALETTES, GROUPS: GROUPS, DEFAULTS: DEFAULTS,
 	esc: esc, icon: icon, html: html,
-	flatten: flatten, realNode: realNode, menuHas: menuHas, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
+	flatten: flatten, realNode: realNode, menuHas: menuHas, software: software, grouped: grouped, groupOf: groupOf, title: title, appIcon: appIcon,
 	loadSettings: loadSettings, saveSettings: saveSettings, applyLook: applyLook, toast: toast, motion: motion, leave: leave,
-	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, kind: kind, pretty: pretty,
+	rate: rate, bytes: bytes, duration: duration, signal: signal, quality: quality, bandName: bandName, kind: kind, pretty: pretty, connName: connName,
 	readFile: readFile, temperature: temperature, wifiInfo: wifiInfo, clients: clients, wan: wan, ports: ports, dnsName: dnsName, netdev: netdev, cpuStat: cpuStat,
 	board: () => L.resolveDefault(callBoard(), {}),
 	sysinfo: () => L.resolveDefault(callInfo(), {}),
