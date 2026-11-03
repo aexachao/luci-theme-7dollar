@@ -58,7 +58,7 @@
 					</button>
 					<div class="td-side-foot">
 						<button class="td-icon-btn" type="button" id="td-mode" title="{{ T('切换深浅色', 'Toggle dark mode') }}"><svg class="i" aria-hidden="true"><use href="{{ sprite }}#moon"></use></svg></button>
-						<a class="td-icon-btn" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ T('退出登录', 'Log out') }}"><svg class="i" aria-hidden="true"><use href="{{ sprite }}#logout"></use></svg></a>
+						<a class="td-icon-btn" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ T('退出登录', 'Log out') }}"><svg class="i" aria-hidden="true"><use href="{{ sprite }}#arrow"></use></svg></a>
 					</div>
 				</div>
 			</header>
