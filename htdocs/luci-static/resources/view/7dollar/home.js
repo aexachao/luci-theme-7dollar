@@ -246,12 +246,13 @@ return view.extend({
 		const list = (this.s.wan && this.s.wan.uplinks) || [];
 		const html = list.map(u => {
 			const addr = u.ip || u.ip6 || T('未连接', 'Not connected');
-			const meta = [ PROTO[u.proto] || u.proto, u.device ].filter(Boolean).join(' · ');
-			const dns = (u.dns || []).join(' · ');
+			const proto = PROTO[u.proto] || u.proto;
+			const dns = (u.dns || []).join(', ');
+			const label = `${esc(u.name)}${esc(T('地址', ' address'))}${proto ? ` · ${esc(proto)}` : ''}`;
 			return `<dl class="td-fact-row td-fact-uplink">`
-				+ `<div><dt><span class="td-dot${u.up ? '' : ' bad'}"></span>${esc(u.name)} ${esc(T('地址', 'address'))}</dt><dd${u.up ? '' : ' class="td-muted"'}>${esc(addr)}</dd>${meta ? `<dd class="td-fact-sub">${esc(meta)}</dd>` : ''}</div>`
+				+ `<div><dt>${label}</dt><dd${u.up ? '' : ' class="td-muted"'}>${esc(addr)}</dd></div>`
 				+ `<div><dt>DNS</dt><dd${dns ? '' : ' class="td-muted"'}>${esc(dns || '—')}</dd></div>`
-				+ `<div><dt>${esc(T('已连接', 'Connected for'))}</dt><dd>${u.uptime ? esc(td.duration(u.uptime)) : '—'}</dd></div>`
+				+ `<div><dt class="td-fact-state"><span class="td-dot${u.up ? '' : ' bad'}"></span>${esc(T('已连接', 'Connected for'))}</dt><dd>${u.uptime ? esc(td.duration(u.uptime)) : '—'}</dd></div>`
 				+ `</dl>`;
 		}).join('');
 		if (html != this.s.uplinks) {

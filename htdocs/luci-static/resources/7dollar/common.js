@@ -563,7 +563,7 @@ function dnsName(list, gw, gwName) {
 		const n = DNS_NAMES[ip] || (ip == gw ? gwName || T('上级路由', 'Upstream') : ip);
 		if (names.indexOf(n) < 0) names.push(n);
 	});
-	return names.slice(0, 2).join(' · ') || '—';
+	return names.slice(0, 2).join(', ') || '—';
 }
 
 function netdev(text) {
