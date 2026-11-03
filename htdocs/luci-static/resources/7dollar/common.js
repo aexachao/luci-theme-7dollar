@@ -492,15 +492,16 @@ function wan() {
 		const dev = i => i.l3_device || i.device;
 		const lan = list.find(i => i.interface == 'lan');
 		const v6 = i => ((i['ipv6-address'] || []).filter(a => !/^fe80:/i.test(a.address))[0] || {}).address;
-		const addr = i => ((i['ipv4-address'] || [])[0] || {}).address || v6(i);
 		const routed = i => (i.route || []).some(r => r.target == '0.0.0.0' || r.target == '::');
-		/* A second default route (IPTV, backup WAN) or an addressed companion on the same link
-		 * (the DHCPv6 interface behind a PPPoE WAN) is an uplink too, not part of the main one. */
+		/* A second default route (IPTV, backup WAN) is another uplink. The DHCPv6 interface
+		 * behind a PPPoE WAN is not: its global address belongs to the main uplink. */
 		const uplinks = primary => list
-			.filter(i => i.interface != 'lan' && i.interface != 'loopback' && i.interface != (primary || {}).interface)
-			.filter(i => routed(i) || (dev(i) == dev(primary || {}) && !!addr(i)))
+			.filter(i => i.interface != 'lan' && i.interface != 'loopback' && i.interface != (primary || {}).interface
+			          && dev(i) != dev(primary || {}))
+			.filter(routed)
 			.map(i => ({ name: i.interface, proto: i.proto, device: i.device, port: i.l3_device, up: !!i.up,
 			             ip: ((i['ipv4-address'] || [])[0] || {}).address, ip6: v6(i), uptime: i.uptime }));
+		const companion6 = x => v6(list.find(j => j !== x && dev(j) == dev(x) && v6(j)) || {});
 
 		if (!def) {
 			const w = list.find(i => i.interface == 'wan');
@@ -518,7 +519,7 @@ function wan() {
 			device: def.dev,
 			port: i.device,
 			ip: ((i['ipv4-address'] || [])[0] || {}).address,
-			ip6: v6(i),
+			ip6: v6(i) || companion6(i),
 			gw: def.gw != '0.0.0.0' ? def.gw : null,
 			dns: i['dns-server'] || [],
 			uptime: i.uptime,
