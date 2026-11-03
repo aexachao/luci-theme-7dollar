@@ -220,7 +220,7 @@ return view.extend({
 		this.paintUplinks();
 
 		const v6 = ok && w.ip6 && w.ip6 != w.ip ? w.ip6 : '';
-		this.set('td-wanip6', v6 ? 'IPv6 ' + v6 : '');
+		this.set('td-wanip6', v6);
 		this.$('td-wanip6').hidden = !v6;
 		this.$('td-wanip6').title = v6;
 

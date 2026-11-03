@@ -767,6 +767,12 @@ body.modal-overlay-active .modal{transform:none;transition-duration:var(--base)}
 @keyframes td-flow{from{left:0;opacity:0}15%,85%{opacity:1}to{left:calc(100% - 8px);opacity:0}}
 @container (max-width:430px){.td-link .t{visibility:hidden}.td-node small{display:none}}
 .td-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px 8px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--line-soft)}
+/* Wide cards weight the columns by their content (address / DNS / uptime / extra dial-up)
+   instead of giving every fact an equal share, so a short value like latency stays narrow. */
+@container (min-width:600px){
+	.td-facts{grid-template-columns:minmax(0,2.5fr) minmax(0,.9fr) minmax(0,2.8fr) minmax(0,1.8fr)}
+	.td-facts:has(> .td-fact-extra){grid-template-columns:minmax(0,2.5fr) minmax(0,.9fr) minmax(0,2.8fr) minmax(0,1.8fr) minmax(0,1.7fr)}
+}
 .td-facts dt{font-size:12.5px;color:var(--ink-3);font-weight:400}
 .td-facts dd{font-size:14.5px;margin:3px 0 0;overflow-wrap:anywhere;color:var(--ink)}
 /* secondary dial-ups as ordinary facts; IPv6 folds under the WAN address */
