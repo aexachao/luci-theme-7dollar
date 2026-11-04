@@ -500,8 +500,8 @@ function wan() {
 		const dev = i => i.l3_device || i.device;
 		const lan = list.find(i => i.interface == 'lan');
 		const v6 = i => ((i['ipv6-address'] || []).filter(a => !/^fe80:/i.test(a.address))[0] || {}).address;
-		const routed = i => (i.route || []).some(r => r.target == '0.0.0.0' || r.target == '::');
-		const gw4 = i => ((i.route || []).find(r => r.target == '0.0.0.0' && /^[0-9.]+$/.test(r.nexthop || '')) || {}).nexthop || null;
+		const routed = i => (i.route || []).some(r => r.mask == 0 && (r.target == '0.0.0.0' || r.target == '::'));
+		const gw4 = i => ((i.route || []).find(r => r.mask == 0 && r.target == '0.0.0.0' && /^[0-9.]+$/.test(r.nexthop || '')) || {}).nexthop || null;
 		/* A second default route (IPTV, backup WAN) is another uplink. The DHCPv6 interface
 		 * behind a PPPoE WAN is not: its global address belongs to the main uplink. */
 		const uplinks = primary => list
