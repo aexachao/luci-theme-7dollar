@@ -19,6 +19,9 @@
   <a href="#安装">安装</a> · <a href="#使用">使用</a> · <a href="#卸载">卸载</a> · <a href="#english">English</a>
 </p>
 
+> **维护分支**：本仓库 fork 自 [itsmaiGe/luci-theme-7dollar](https://github.com/itsmaiGe/luci-theme-7dollar)，基于 1.0.10，维护顶部导航 1.x、总览线路轮播等本地改动。  
+> **Maintained fork**: based on upstream 1.0.10, carrying local top-nav 1.x and overview uplink carousel changes.
+
 <p align="center">
   <img src="docs/home-light.webp" alt="首页" width="100%">
 </p>
